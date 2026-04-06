@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://worksphere.in/sitemap.xml
+
+# Disallow admin and dashboard paths from crawling
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /bookings
+Disallow: /payments
+Disallow: /invoices

@@ -1,0 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { scroll-behavior: smooth; scroll-padding-top: 4.5rem; }
+  body { @apply bg-gray-50 text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100; font-family: 'Inter', system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary-600 text-white px-4 py-2 rounded-xl hover:bg-primary-700 active:bg-primary-800
+           transition-all duration-200 font-medium shadow-sm hover:shadow-md
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600
+           hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 font-medium disabled:opacity-50;
+  }
+  .btn-outline {
+    @apply border-2 border-primary-600 text-primary-600 dark:text-primary-400 px-4 py-2 rounded-xl
+           hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all duration-200 font-medium;
+  }
+  .btn-danger {
+    @apply bg-red-600 text-white px-4 py-2 rounded-xl hover:bg-red-700
+           transition-all duration-200 font-medium;
+  }
+  .input-field {
+    @apply w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
+           transition-all duration-200 bg-white dark:bg-gray-800 dark:text-gray-100
+           placeholder-gray-400 dark:placeholder-gray-500;
+  }
+  .card {
+    @apply bg-white dark:bg-gray-900 rounded-2xl shadow-card hover:shadow-card-hover transition-shadow duration-300
+           border border-gray-100 dark:border-gray-800;
+  }
+  .badge { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium; }
+  .badge-pending  { @apply badge bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300; }
+  .badge-confirmed { @apply badge bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300; }
+  .badge-in_progress { @apply badge bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300; }
+  .badge-completed { @apply badge bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300; }
+  .badge-cancelled { @apply badge bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300; }
+  .badge-paid { @apply badge bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300; }
+  .page-header { @apply text-2xl font-bold text-gray-900 dark:text-white mb-1; }
+  .page-subtitle { @apply text-sm text-gray-500 dark:text-gray-400 mb-6; }
+  .section-title { @apply text-xl font-semibold text-gray-900 dark:text-white mb-4; }
+}
+
+/* Leaflet map fix */
+.leaflet-container { z-index: 0 !important; }
+
+/* Smooth scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+.dark ::-webkit-scrollbar-thumb { background: #475569; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+/* Hide scrollbar for chat suggestions */
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* Loading spinner */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner { animation: spin 0.8s linear infinite; }
+
+/* Line clamp */
+.line-clamp-1 { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; }
+.line-clamp-2 { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+
+/* Print styles */
+@media print {
+  .print\:hidden { display: none !important; }
+  body { background: white; }
+}
+
+/* Animate in */
+.animate-in {
+  animation: slideUp 0.3s ease-out;
+}
+
+/* Focus visible styles for accessibility */
+:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Optimistic UI pulse */
+@keyframes optimisticPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+.optimistic-update {
+  animation: optimisticPulse 0.6s ease-in-out;
+}
+
+/* Selection colors */
+::selection {
+  background-color: #2563eb;
+  color: white;
+}
+
+/* Dark mode selection */
+.dark ::selection {
+  background-color: #3b82f6;
+  color: white;
+}
