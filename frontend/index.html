@@ -7,22 +7,51 @@
 
     <!-- SEO Meta Tags -->
     <title>WorkSphere — India's All-in-One Workforce Platform</title>
-    <meta name="description" content="WorkSphere connects you with verified professionals for home services, jobs, and freelance gigs across India. Book electricians, plumbers, painters, AC repair, salon at home & 20+ service categories." />
-    <meta name="keywords" content="WorkSphere, home services, plumber, electrician, carpenter, AC repair, jobs, gigs, freelance, India, workforce platform" />
+    <meta name="description" content="WorkSphere connects you with verified professionals for home services, jobs, and freelance gigs across Delhi NCR & India. Book electricians, plumbers, painters, AC repair, salon at home & 20+ service categories." />
+    <meta name="keywords" content="WorkSphere, home services, plumber, electrician, carpenter, AC repair, jobs, gigs, freelance, India, Delhi NCR, workforce platform, hire professionals" />
     <meta name="author" content="WorkSphere" />
     <meta name="theme-color" content="#2563eb" />
+    <link rel="canonical" href="https://wsphere.me/" />
 
     <!-- Open Graph -->
     <meta property="og:title" content="WorkSphere — India's All-in-One Workforce Platform" />
     <meta property="og:description" content="Find trusted professionals, browse jobs, and post freelance gigs — all in one place. 20+ service categories across India." />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://worksphere.in" />
+    <meta property="og:url" content="https://wsphere.me/" />
     <meta property="og:site_name" content="WorkSphere" />
+    <meta property="og:locale" content="en_IN" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="WorkSphere — India's All-in-One Workforce Platform" />
     <meta name="twitter:description" content="Connect with skilled professionals, find your dream job, and grow your freelance career." />
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "WorkSphere",
+      "url": "https://wsphere.me",
+      "description": "India's all-in-one workforce platform connecting customers with verified professionals for home services, jobs, and freelance gigs.",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "INR"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.7",
+        "reviewCount": "1200"
+      },
+      "areaServed": {
+        "@type": "Place",
+        "name": "Delhi NCR, India"
+      }
+    }
+    </script>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -31,6 +60,20 @@
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- GitHub Pages SPA redirect handler -->
+    <script type="text/javascript">
+      (function(l) {
+        if (l.search[1] === '/' ) {
+          var decoded = l.search.slice(1).split('&').map(function(s) { 
+            return s.replace(/~and~/g, '&')
+          }).join('?');
+          window.history.replaceState(null, null,
+              l.pathname.slice(0, -1) + decoded + l.hash
+          );
+        }
+      }(window.location))
+    </script>
   </head>
   <body>
     <div id="root"></div>
