@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { getAllServices, getAllJobs, getAllGigs, queryDocuments } from '../services/firestoreService'
 import { dummyServices, dummyJobs, dummyGigs, dummyWorkers } from '../utils/dummyData'
 
@@ -9,11 +9,11 @@ export const useDataCache = () => useContext(DataCacheContext)
 const CACHE_TTL = 5 * 60 * 1000
 
 export function DataCacheProvider({ children }) {
-  const [services, setServices] = useState([])
-  const [jobs, setJobs] = useState([])
-  const [gigs, setGigs] = useState([])
+  const [services, setServices] = useState(dummyServices)
+  const [jobs, setJobs] = useState(dummyJobs)
+  const [gigs, setGigs] = useState(dummyGigs)
   const [workers, setWorkers] = useState(dummyWorkers)
-  const [loaded, setLoaded] = useState(false)
+  const [loaded, setLoaded] = useState(true) // Stale-while-revalidate - immediately true
   const [error, setError] = useState(null)
   const lastFetch = useRef(0)
   const fetchInProgress = useRef(false)
@@ -57,7 +57,6 @@ export function DataCacheProvider({ children }) {
 
   // Refresh entire cache
   const refreshCache = useCallback(() => {
-    setLoaded(false)
     lastFetch.current = 0
     return loadAll(true)
   }, [loadAll])
@@ -92,12 +91,14 @@ export function DataCacheProvider({ children }) {
     }
   }, [])
 
+  const contextValue = useMemo(() => ({
+    services, jobs, gigs, workers,
+    loaded, error,
+    refreshCache, refreshCollection
+  }), [services, jobs, gigs, workers, loaded, error, refreshCache, refreshCollection])
+
   return (
-    <DataCacheContext.Provider value={{
-      services, jobs, gigs, workers,
-      loaded, error,
-      refreshCache, refreshCollection
-    }}>
+    <DataCacheContext.Provider value={contextValue}>
       {children}
     </DataCacheContext.Provider>
   )

@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { MagnifyingGlassIcon, PlusIcon, MapPinIcon, CurrencyDollarIcon, FunnelIcon } from '@heroicons/react/24/outline'
+import { MagnifyingGlassIcon, PlusIcon, MapPinIcon, CurrencyDollarIcon, FunnelIcon, AcademicCapIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../../context/AuthContext'
 import { useDataCache } from '../../context/DataCacheContext'
 import JobCard from '../../components/JobCard'
+import useDebounce from '../../hooks/useDebounce'
 import { CardGridSkeleton } from '../../components/SkeletonLoader'
 import ErrorState from '../../components/ErrorState'
 import EmptyState from '../../components/EmptyState'
@@ -26,27 +27,30 @@ const SALARY_RANGES = [
 ]
 
 export default function JobsPage() {
-  const { user } = useAuth()
+  const { user, userProfile } = useAuth()
   const { jobs, loaded, error, refreshCache } = useDataCache()
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
   const [type, setType] = useState('All')
   const [location, setLocation] = useState('All Locations')
   const [salaryRange, setSalaryRange] = useState(0)
+  const [experience, setExperience] = useState('All Experience')
   const [showFilters, setShowFilters] = useState(false)
 
   const filtered = useMemo(() => {
     const range = SALARY_RANGES[salaryRange]
     return jobs.filter(j => {
-      const matchSearch = !search || j.title?.toLowerCase().includes(search.toLowerCase()) || j.company?.toLowerCase().includes(search.toLowerCase())
+      const matchSearch = !debouncedSearch || j.title?.toLowerCase().includes(debouncedSearch.toLowerCase()) || j.company?.toLowerCase().includes(debouncedSearch.toLowerCase())
       const matchType = type === 'All' || j.employment_type === type || j.type?.toLowerCase().replace(/[\s-]/g, '_') === type
       const matchLocation = location === 'All Locations' || j.location === location
       const matchSalary = (j.salary_min || 0) >= range.min && (j.salary_min || 0) <= range.max ||
                           (j.salary_max || 0) >= range.min && (j.salary_max || 0) <= range.max
-      return matchSearch && matchType && matchLocation && matchSalary
+      const matchExperience = experience === 'All Experience' || j.experience_required === experience
+      return matchSearch && matchType && matchLocation && matchSalary && matchExperience
     })
-  }, [jobs, search, type, location, salaryRange])
+  }, [jobs, debouncedSearch, type, location, salaryRange, experience])
 
-  const activeFilterCount = [type !== 'All', location !== 'All Locations', salaryRange !== 0].filter(Boolean).length
+  const activeFilterCount = [type !== 'All', location !== 'All Locations', salaryRange !== 0, experience !== 'All Experience'].filter(Boolean).length
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-8">
@@ -57,7 +61,7 @@ export default function JobsPage() {
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">Job Portal</h1>
             <p className="text-gray-500 dark:text-gray-400">{jobs.length} open positions across Delhi NCR</p>
           </div>
-          {user && <Link to="/jobs/create" className="btn-primary flex items-center gap-2 self-start"><PlusIcon className="w-4 h-4" />Post Job</Link>}
+          {user && userProfile?.user_type === 'employer' && <Link to="/jobs/create" className="btn-primary flex items-center gap-2 self-start"><PlusIcon className="w-4 h-4" />Post Job</Link>}
         </div>
 
         {/* Search & Primary Filter */}
@@ -89,7 +93,7 @@ export default function JobsPage() {
         {/* Advanced Filters */}
         {showFilters && (
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-card border border-gray-100 dark:border-gray-800 p-5 mb-6 animate-slide-up">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   <MapPinIcon className="w-4 h-4" /> Location
@@ -106,10 +110,18 @@ export default function JobsPage() {
                   {SALARY_RANGES.map((r, i) => <option key={i} value={i}>{r.label}</option>)}
                 </select>
               </div>
+              <div>
+                <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <AcademicCapIcon className="w-4 h-4" /> Experience
+                </label>
+                <select value={experience} onChange={e => setExperience(e.target.value)} className="input-field">
+                  {['All Experience', 'Fresher', '1–2 years', '1–3 years', '2–5 years', '3–5 years'].map(e => <option key={e} value={e}>{e}</option>)}
+                </select>
+              </div>
             </div>
             {activeFilterCount > 0 && (
               <button
-                onClick={() => { setLocation('All Locations'); setSalaryRange(0); setType('All') }}
+                onClick={() => { setLocation('All Locations'); setSalaryRange(0); setType('All'); setExperience('All Experience') }}
                 className="mt-4 text-sm text-primary-600 hover:text-primary-700 font-medium">
                 Clear all filters
               </button>

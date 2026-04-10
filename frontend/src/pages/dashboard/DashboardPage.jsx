@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { getUserBookings, queryDocuments } from '../../services/firestoreService'
@@ -21,9 +21,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (user) loadDashData()
-  }, [user])
+  }, [user, loadDashData])
 
-  const loadDashData = async () => {
+  const loadDashData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -52,15 +52,12 @@ export default function DashboardPage() {
           Promise.all([
             queryDocuments('jobs', 'employer_id', '==', user.uid),
             queryDocuments('gigs', 'employer_id', '==', user.uid),
-          ]).then(([jobsData, gigsData]) => {
+            queryDocuments('job_applications', 'employerId', '==', user.uid).catch(() => []),
+            queryDocuments('gig_applications', 'employerId', '==', user.uid).catch(() => []),
+          ]).then(([jobsData, gigsData, jobApps, gigApps]) => {
             jobCount = jobsData.length
             gigCount = gigsData.length
-            // Count applications in a single batch instead of N+1
-            return Promise.all(
-              jobsData.map(job => queryDocuments('applications', 'jobId', '==', job.id).catch(() => []))
-            )
-          }).then(appResults => {
-            appCount = appResults.reduce((sum, apps) => sum + apps.length, 0)
+            appCount = jobApps.length + gigApps.length
           }).catch(() => {})
         )
       }
@@ -83,7 +80,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user, isWorker, isEmployer])
 
   const greeting = () => {
     const hour = new Date().getHours()

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import {
   signInWithEmailAndPassword, createUserWithEmailAndPassword,
   signOut, onAuthStateChanged, updateProfile
@@ -6,6 +6,7 @@ import {
 import { doc, setDoc, getDoc } from 'firebase/firestore'
 import { auth, db } from '../services/firebase'
 import toast from 'react-hot-toast'
+import { PageSkeleton } from '../components/SkeletonLoader'
 
 export const AuthContext = createContext()
 export const useAuth = () => useContext(AuthContext)
@@ -41,7 +42,7 @@ export function AuthProvider({ children }) {
     return unsub
   }, [])
 
-  const login = async (email, password) => {
+  const login = useCallback(async (email, password) => {
     const cred = await signInWithEmailAndPassword(auth, email, password)
     // Fetch profile for role-based redirect
     const snap = await getDoc(doc(db, 'users', cred.user.uid))
@@ -52,9 +53,9 @@ export function AuthProvider({ children }) {
     }
     toast.success('Welcome back!')
     return { user: cred.user, profile }
-  }
+  }, [])
 
-  const signup = async ({ name, email, password, phone, location, userType = 'customer' }) => {
+  const signup = useCallback(async ({ name, email, password, phone, location, userType = 'customer' }) => {
     // Block admin signup from public form
     if (userType === 'admin') {
       throw new Error('Admin accounts cannot be created via signup')
@@ -86,16 +87,16 @@ export function AuthProvider({ children }) {
     setUserProfile(profile)
     toast.success('Account created successfully!')
     return { user: cred.user, profile }
-  }
+  }, [])
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await signOut(auth)
     setUser(null)
     setUserProfile(null)
     toast.success('Logged out')
-  }
+  }, [])
 
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     if (!user) return
     try {
       const snap = await getDoc(doc(db, 'users', user.uid))
@@ -103,21 +104,21 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.error('Error refreshing profile:', err)
     }
-  }
+  }, [user])
 
-  const updateUserProfile = async (data) => {
+  const updateUserProfile = useCallback(async (data) => {
     if (!user) return
     const updateData = { ...data, updatedAt: new Date().toISOString() }
     await setDoc(doc(db, 'users', user.uid), updateData, { merge: true })
     setUserProfile(p => ({ ...p, ...updateData }))
-  }
+  }, [user])
 
   const isAdmin = userProfile?.user_type === 'admin'
   const isWorker = userProfile?.user_type === 'worker'
   const isEmployer = userProfile?.user_type === 'employer'
   const isCustomer = userProfile?.user_type === 'customer'
 
-  const getRedirectPath = (profile) => {
+  const getRedirectPath = useCallback((profile) => {
     if (!profile) return '/dashboard'
     switch (profile.user_type) {
       case 'admin': return '/admin'
@@ -126,17 +127,19 @@ export function AuthProvider({ children }) {
       case 'customer': return '/dashboard'
       default: return '/dashboard'
     }
-  }
+  }, [])
+
+  const contextValue = useMemo(() => ({
+    user, userProfile, loading,
+    login, signup, logout,
+    refreshProfile, updateUserProfile,
+    isAdmin, isWorker, isEmployer, isCustomer,
+    getRedirectPath
+  }), [user, userProfile, loading, login, signup, logout, refreshProfile, updateUserProfile, isAdmin, isWorker, isEmployer, isCustomer, getRedirectPath])
 
   return (
-    <AuthContext.Provider value={{
-      user, userProfile, loading,
-      login, signup, logout,
-      refreshProfile, updateUserProfile,
-      isAdmin, isWorker, isEmployer, isCustomer,
-      getRedirectPath
-    }}>
-      {!loading && children}
+    <AuthContext.Provider value={contextValue}>
+      {loading ? <PageSkeleton /> : children}
     </AuthContext.Provider>
   )
 }

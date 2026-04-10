@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { queryDocuments } from '../../services/firestoreService'
@@ -6,8 +6,8 @@ import { dummyServices, formatCurrencyINR } from '../../utils/dummyData'
 import { TableSkeleton } from '../../components/SkeletonLoader'
 import ErrorState from '../../components/ErrorState'
 import EmptyState from '../../components/EmptyState'
-import { WrenchScrewdriverIcon } from '@heroicons/react/24/outline'
-import { StarIcon } from '@heroicons/react/24/solid'
+import { WrenchScrewdriverIcon, ClockIcon } from '@heroicons/react/24/outline'
+import { StarIcon, CheckCircleIcon } from '@heroicons/react/24/solid'
 
 export default function MyServices() {
   const { user } = useAuth()
@@ -15,11 +15,7 @@ export default function MyServices() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
-    if (user) loadServices()
-  }, [user])
-
-  const loadServices = async () => {
+  const loadServices = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -32,10 +28,11 @@ export default function MyServices() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user])
+
+  useEffect(() => { if (user) loadServices() }, [user, loadServices])
 
   if (loading) return <TableSkeleton rows={4} />
-
   if (error) return <ErrorState title="Error Loading Services" message={error} onRetry={loadServices} />
 
   return (
@@ -52,7 +49,7 @@ export default function MyServices() {
         <EmptyState
           icon={WrenchScrewdriverIcon}
           title="No services yet"
-          description="Create your first service listing"
+          description="Create your first service listing to start receiving bookings"
           actionLabel="Create Your First Service"
           actionTo="/services/create"
         />
@@ -60,21 +57,50 @@ export default function MyServices() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {services.map(s => (
             <div key={s.id} className="bg-white dark:bg-gray-900 rounded-xl shadow-card border border-gray-100 dark:border-gray-800 p-5">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">{s.title}</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">{s.category}</p>
+              {/* Title + Price */}
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1 min-w-0 pr-3">
+                  <h3 className="font-semibold text-gray-900 dark:text-white truncate">{s.title}</h3>
+                  <p className="text-xs text-gray-400 mt-0.5 capitalize">{s.category}</p>
                 </div>
-                <span className="text-lg font-bold text-primary-600">{formatCurrencyINR(s.price || 0)}</span>
+                <span className="text-lg font-bold text-primary-600 flex-shrink-0">{formatCurrencyINR(s.price || 0)}</span>
               </div>
+
+              {/* Description */}
               <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-3">{s.description}</p>
-              <div className="flex items-center justify-between">
+
+              {/* Availability slots */}
+              {(s.availability || []).length > 0 && (
+                <div className="mb-3">
+                  <p className="text-xs text-gray-400 flex items-center gap-1 mb-1.5">
+                    <ClockIcon className="w-3 h-3" /> Available slots
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {(s.availability || []).slice(0, 2).map(slot => (
+                      <span key={slot} className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                        {slot}
+                      </span>
+                    ))}
+                    {(s.availability || []).length > 2 && (
+                      <span className="text-xs text-gray-400">+{s.availability.length - 2} more</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Footer: Rating + Status */}
+              <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-800">
                 <div className="flex items-center gap-1">
                   <StarIcon className="w-4 h-4 text-yellow-400" />
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">{s.rating || 0}</span>
-                  <span className="text-xs text-gray-400">({s.total_reviews || 0})</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">{s.rating || '0.0'}</span>
+                  <span className="text-xs text-gray-400">({s.total_reviews || 0} reviews)</span>
                 </div>
-                <span className={`badge ${s.is_active !== false ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'}`}>
+                <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-semibold ${
+                  s.is_active !== false
+                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                }`}>
+                  {s.is_active !== false && <CheckCircleIcon className="w-3 h-3" />}
                   {s.is_active !== false ? 'Active' : 'Inactive'}
                 </span>
               </div>

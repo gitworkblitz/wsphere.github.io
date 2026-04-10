@@ -5,7 +5,7 @@ import { MapPinIcon, UserIcon } from '@heroicons/react/24/outline'
 import { formatCurrencyINR } from '../utils/dummyData'
 import { CategoryIconBadge } from './CategoryIcon'
 
-export default function ServiceCard({ service }) {
+const ServiceCard = React.memo(function ServiceCard({ service }) {
   const s = service
   return (
     <Link to={`/services/${s.id}`}
@@ -52,4 +52,6 @@ export default function ServiceCard({ service }) {
       </div>
     </Link>
   )
-}
+})
+
+export default ServiceCard

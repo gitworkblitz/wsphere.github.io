@@ -6,12 +6,14 @@ import { BOOKING_STATUSES, formatCurrencyINR } from '../../utils/dummyData'
 import { TableSkeleton } from '../../components/SkeletonLoader'
 import toast from 'react-hot-toast'
 import { CurrencyRupeeIcon, CheckCircleIcon, ClockIcon, CalendarIcon } from '@heroicons/react/24/outline'
+import PaymentModal from '../../components/PaymentModal'
 
 export default function PaymentsPage() {
   const { user } = useAuth()
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [payingId, setPayingId] = useState(null)
+  const [payingBooking, setPayingBooking] = useState(null)
 
   useEffect(() => {
     if (user) loadBookings()
@@ -34,10 +36,11 @@ export default function PaymentsPage() {
     try {
       await simulatePayment(booking.id, booking.amount || booking.price || 0, user.uid)
       await generateInvoice(booking.id, booking)
-      toast.success('Payment successful! Invoice generated')
+      toast.success('Payment successful! Invoice generated 🎉')
+      setPayingBooking(null)
       await loadBookings()
     } catch (err) {
-      toast.error('Payment failed')
+      toast.error('Payment failed. Please try again.')
     } finally {
       setPayingId(null)
     }
@@ -121,16 +124,12 @@ export default function PaymentsPage() {
                 </div>
                 <div className="flex items-center gap-4">
                   <p className="text-lg font-bold text-gray-900">{formatCurrencyINR(b.amount || b.price || 0)}</p>
-                  <button onClick={() => handlePayment(b)} disabled={payingId === b.id}
+                  <button
+                    onClick={() => setPayingBooking(b)}
+                    disabled={payingId === b.id}
                     className="bg-green-600 text-white px-5 py-2.5 rounded-xl hover:bg-green-700 transition-colors font-semibold text-sm flex items-center gap-2 shadow-sm">
-                    {payingId === b.id ? (
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        <CurrencyRupeeIcon className="w-4 h-4" />
-                        Pay Now
-                      </>
-                    )}
+                    <CurrencyRupeeIcon className="w-4 h-4" />
+                    Pay Now
                   </button>
                 </div>
               </div>
@@ -173,6 +172,18 @@ export default function PaymentsPage() {
           </div>
         )}
       </div>
+
+      {payingBooking && (
+        <PaymentModal
+          amount={payingBooking.amount || payingBooking.price || 0}
+          service={payingBooking.service_title}
+          worker={payingBooking.worker_name}
+          date={payingBooking.booking_date}
+          loading={payingId === payingBooking.id}
+          onConfirm={() => handlePayment(payingBooking)}
+          onClose={() => !payingId && setPayingBooking(null)}
+        />
+      )}
     </div>
   )
 }

@@ -1,102 +1,154 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { acceptGig } from '../services/firestoreService'
+import { useEffect } from 'react'
+import { applyToGig, hasUserAppliedToGig } from '../services/firestoreService'
 import { formatCurrencyINR } from '../utils/dummyData'
-import { MapPinIcon, UserIcon, ClockIcon } from '@heroicons/react/24/outline'
-import { CheckCircleIcon } from '@heroicons/react/24/solid'
+import { MapPinIcon, UserIcon, ClockIcon, StarIcon as StarOutlineIcon } from '@heroicons/react/24/outline'
+import { CheckCircleIcon, StarIcon as StarSolidIcon, CurrencyRupeeIcon } from '@heroicons/react/24/solid'
 import toast from 'react-hot-toast'
 
-export default function GigCard({ gig }) {
+const GigCard = React.memo(function GigCard({ gig }) {
   const { user, userProfile } = useAuth()
   const navigate = useNavigate()
-  const [accepted, setAccepted] = useState(gig.status === 'in-progress' || gig.status === 'completed')
-  const [accepting, setAccepting] = useState(false)
+  const [applied, setApplied] = useState(false)
+  const [applying, setApplying] = useState(false)
 
   const isAssignedToMe = gig.assignedTo === user?.uid
   const isOpen = gig.status === 'open' || gig.status === 'active'
 
-  const handleAccept = async (e) => {
+  useEffect(() => {
+    if (user && gig?.id) {
+      hasUserAppliedToGig(gig.id, user.uid).then(setApplied).catch(console.error)
+    }
+  }, [user, gig?.id])
+
+  const handleApply = async (e) => {
     e.preventDefault()
     e.stopPropagation()
     if (!user) { navigate('/login'); return }
+    if (applied) return
 
-    setAccepting(true)
+    setApplying(true)
     try {
-      await acceptGig(gig.id, user.uid, userProfile?.name || 'User')
-      setAccepted(true)
-      toast.success('Gig accepted! It is yours now.')
+      await applyToGig({
+        gigId: gig.id,
+        userId: user.uid,
+        userName: userProfile?.name || 'User',
+        applicantName: userProfile?.name || 'User',
+        userEmail: user.email || '',
+        gigTitle: gig.title || '',
+        employerId: gig.employer_id || gig.posted_by || '',
+      })
+      setApplied(true)
+      toast.success('Applied Successfully ✅')
     } catch (err) {
-      toast.error(err.message || 'Failed to accept gig')
-    } finally { setAccepting(false) }
+      if (err.message?.includes('already applied')) {
+        setApplied(true)
+        toast.error('You have already applied to this gig')
+      } else {
+        toast.error(err.message || 'Failed to apply')
+      }
+    } finally { setApplying(false) }
   }
 
-  const statusColor = {
-    'open': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
-    'active': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
-    'in-progress': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-    'completed': 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+  const postedDaysAgo = () => {
+    if (!gig.createdAt) return ''
+    const days = Math.floor((Date.now() - new Date(gig.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+    if (days === 0) return 'Posted today'
+    if (days === 1) return 'Posted 1 day ago'
+    return `Posted ${days} days ago`
   }
+
+  const clientRating = gig.client_details?.rating || 4.5
+  const clientProjects = gig.client_details?.projects_posted || 0
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-card border border-gray-100 dark:border-gray-800 overflow-hidden hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1 flex flex-col group">
-      {/* Color accent bar */}
-      <div className={`h-1.5 ${isOpen ? 'bg-gradient-to-r from-violet-500 to-primary-600' : 'bg-gray-200 dark:bg-gray-700'}`} />
-
-      <div className="p-5 flex flex-col flex-1">
-        {/* Top row: category + status */}
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-medium px-2.5 py-0.5 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full">
-            {gig.category || 'General'}
-          </span>
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${statusColor[gig.status] || statusColor.open}`}>
-            {gig.status || 'open'}
-          </span>
-        </div>
-
-        {/* Title */}
-        <Link to={`/gigs/${gig.id}`}>
-          <h3 className="font-semibold text-gray-900 dark:text-white mb-2 group-hover:text-primary-600 transition-colors line-clamp-2">{gig.title}</h3>
+    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 hover:shadow-card-hover transition-all duration-300 flex flex-col group">
+      {/* Title & Time */}
+      <div className="flex items-start justify-between mb-2 gap-4">
+        <Link to={`/gigs/${gig.id}`} className="min-w-0 flex-1">
+          <h3 className="font-semibold text-lg text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors line-clamp-2">
+            {gig.title}
+          </h3>
         </Link>
+        {applied ? (
+          <span className="flex items-center gap-1.5 text-primary-600 dark:text-primary-400 text-sm font-semibold whitespace-nowrap bg-primary-50 dark:bg-primary-900/20 px-3 py-1.5 rounded-lg">
+            <CheckCircleIcon className="w-5 h-5" /> Applied
+          </span>
+        ) : isAssignedToMe ? (
+          <span className="flex items-center gap-1.5 text-green-600 dark:text-green-400 text-sm font-semibold whitespace-nowrap bg-green-50 dark:bg-green-900/20 px-3 py-1.5 rounded-lg">
+            <CheckCircleIcon className="w-5 h-5" /> Active Match
+          </span>
+        ) : null}
+      </div>
 
-        {/* Description */}
-        <p className="text-gray-500 dark:text-gray-400 text-sm mb-3 line-clamp-2 flex-1">{gig.description}</p>
+      <div className="text-xs text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-2">
+        <span className="font-medium text-gray-700 dark:text-gray-300">Fixed-price</span>
+        <span>•</span>
+        <span>{postedDaysAgo() || 'Recently'}</span>
+        <span>•</span>
+        <span className="capitalize">{gig.status || 'open'}</span>
+      </div>
 
-        {/* Skills */}
-        <div className="flex flex-wrap gap-1.5 mb-4">
-          {(gig.skills || []).slice(0, 3).map(s => (
-            <span key={s} className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-full">{s}</span>
-          ))}
+      {/* Description */}
+      <p className="text-sm text-gray-600 dark:text-gray-300 mb-5 line-clamp-3 leading-relaxed">
+        {gig.description}
+      </p>
+
+      {/* Tags */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {(gig.skills || []).map(s => (
+          <span key={s} className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-medium px-3 py-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+            {s}
+          </span>
+        ))}
+      </div>
+
+      {/* Footer Info: Payment & Client */}
+      <div className="mt-auto pt-5 border-t border-gray-100 dark:border-gray-800 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+        {/* Budget */}
+        <div className="flex items-center gap-2">
+          <div className="bg-green-50 dark:bg-green-900/20 p-2 rounded-lg">
+            <CurrencyRupeeIcon className="w-5 h-5 text-green-600 dark:text-green-500" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Budget</p>
+            <p className="text-sm font-bold text-gray-900 dark:text-white">{formatCurrencyINR(Number(gig.price || gig.budget || 0))}</p>
+          </div>
         </div>
 
-        {/* Meta */}
-        <div className="flex flex-wrap gap-3 text-xs text-gray-500 dark:text-gray-400 mb-4">
-          {gig.location && (
-            <span className="flex items-center gap-1"><MapPinIcon className="w-3.5 h-3.5" />{gig.location}</span>
-          )}
-          {gig.posted_by_name && (
-            <span className="flex items-center gap-1"><UserIcon className="w-3.5 h-3.5" />{gig.posted_by_name}</span>
-          )}
+        {/* Client details visible on md+ screens */}
+        <div className="hidden md:flex flex-col">
+          <div className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 font-medium">
+             <StarSolidIcon className="w-4 h-4 text-amber-400" /> {clientRating}
+             <span className="text-gray-400 dark:text-gray-500 font-normal text-xs ml-1">({clientProjects} projects)</span>
+          </div>
+          <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mt-1">
+             <MapPinIcon className="w-3.5 h-3.5" /> Client: {gig.posted_by_name || 'Verified User'}
+          </div>
         </div>
 
-        {/* Footer: Price + Action */}
-        <div className="mt-auto pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
-          <p className="text-lg font-bold text-primary-600">{formatCurrencyINR(Number(gig.price || gig.budget || 0))}</p>
-
-          {accepted || isAssignedToMe ? (
-            <span className="flex items-center gap-1 text-green-600 dark:text-green-400 text-xs font-medium">
-              <CheckCircleIcon className="w-4 h-4" /> {isAssignedToMe ? 'Your Gig' : 'Taken'}
+        {/* Action Button */}
+        <div className="flex justify-end">
+          {applied ? (
+            <span className="w-full md:w-auto text-center bg-gray-100 dark:bg-gray-800 text-gray-500 py-2.5 px-6 rounded-xl font-medium cursor-not-allowed flex items-center justify-center gap-2">
+              <CheckCircleIcon className="w-5 h-5 text-gray-400" /> Applied
             </span>
-          ) : isOpen ? (
-            <button onClick={handleAccept} disabled={accepting}
-              className="bg-violet-600 text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-violet-700 transition-colors disabled:opacity-50">
-              {accepting ? 'Accepting…' : 'Accept Gig'}
+          ) : (!applied && !isAssignedToMe && isOpen) ? (
+            <button onClick={handleApply} disabled={applying}
+              className="w-full md:w-auto bg-primary-600 text-white text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-primary-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm hover:shadow">
+              {applying ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Applying…</> : 'Apply'}
             </button>
           ) : (
-            <span className="text-xs text-gray-400 dark:text-gray-500 font-medium capitalize">{gig.status}</span>
+            <Link to={`/gigs/${gig.id}`} className="w-full md:w-auto text-center border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium px-6 py-2.5 rounded-xl transition-colors">
+              View Details
+            </Link>
           )}
         </div>
       </div>
     </div>
   )
-}
+})
+
+export default GigCard

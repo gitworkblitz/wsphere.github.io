@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import { getDocument, updateBookingStatus, simulatePayment, generateInvoice, getBookingInvoice, createReview, queryDocuments } from '../../services/firestoreService'
 import { BOOKING_STATUSES, formatCurrencyINR } from '../../utils/dummyData'
 import ReviewModal from '../../components/ReviewModal'
+import PaymentModal from '../../components/PaymentModal'
 import { DetailSkeleton } from '../../components/SkeletonLoader'
 import toast from 'react-hot-toast'
 import {
@@ -23,6 +24,7 @@ export default function BookingDetailPage() {
   const [actionLoading, setActionLoading] = useState(false)
   const [showReview, setShowReview] = useState(false)
   const [existingReview, setExistingReview] = useState(null)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
 
   useEffect(() => {
     loadBooking()
@@ -68,9 +70,10 @@ export default function BookingDetailPage() {
       const inv = await generateInvoice(id, booking)
       setBooking(prev => ({ ...prev, payment_status: 'paid' }))
       setInvoice(inv)
-      toast.success('Payment successful! Invoice generated.')
+      setShowPaymentModal(false)
+      toast.success('Payment successful! Invoice generated. 🎉')
     } catch (err) {
-      toast.error('Payment failed')
+      toast.error('Payment failed. Please try again.')
     } finally {
       setActionLoading(false)
     }
@@ -237,19 +240,14 @@ export default function BookingDetailPage() {
           {isCustomer && booking.payment_status !== 'paid' && booking.status !== 'cancelled' && (
             <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-5">
               <h4 className="font-semibold text-gray-900 mb-2">Payment</h4>
-              <p className="text-sm text-gray-500 mb-4">
-                Amount: <span className="font-bold text-gray-900">{formatCurrencyINR(booking.amount || booking.price || 0)}</span>
-              </p>
-              <button onClick={handlePayment} disabled={actionLoading}
-                className="w-full bg-green-600 text-white px-4 py-3 rounded-xl hover:bg-green-700 transition-colors font-semibold flex items-center justify-center gap-2 shadow-sm">
-                {actionLoading ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <CurrencyRupeeIcon className="w-5 h-5" />
-                    Pay Now
-                  </>
-                )}
+              <p className="text-sm text-gray-500 mb-1">Amount due:</p>
+              <p className="text-2xl font-bold text-gray-900 mb-4">{formatCurrencyINR(booking.amount || booking.price || 0)}</p>
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                className="w-full bg-green-600 text-white px-4 py-3 rounded-xl hover:bg-green-700 transition-colors font-bold flex items-center justify-center gap-2 shadow-sm"
+              >
+                <CurrencyRupeeIcon className="w-5 h-5" />
+                Pay Now
               </button>
             </div>
           )}
@@ -291,6 +289,18 @@ export default function BookingDetailPage() {
 
       {showReview && (
         <ReviewModal onClose={() => setShowReview(false)} onSubmit={handleReviewSubmit} />
+      )}
+
+      {showPaymentModal && (
+        <PaymentModal
+          amount={booking.amount || booking.price || 0}
+          service={booking.service_title}
+          worker={booking.worker_name}
+          date={booking.booking_date}
+          loading={actionLoading}
+          onConfirm={handlePayment}
+          onClose={() => setShowPaymentModal(false)}
+        />
       )}
     </div>
   )

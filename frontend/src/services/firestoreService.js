@@ -235,14 +235,15 @@ export async function completeGig(gigId, userId) {
 
 export async function applyToJob(applicationData) {
   // Prevent duplicate applications
-  const existing = await queryDocuments('applications', 'jobId', '==', applicationData.jobId)
+  const existing = await queryDocuments('job_applications', 'jobId', '==', applicationData.jobId)
   const alreadyApplied = existing.find(a => a.userId === applicationData.userId)
   if (alreadyApplied) {
     throw new Error('You have already applied to this job')
   }
 
-  const appId = await createDocument('applications', {
+  const appId = await createDocument('job_applications', {
     ...applicationData,
+    appliedAt: new Date().toISOString(),
     status: 'applied',
   })
 
@@ -259,20 +260,65 @@ export async function applyToJob(applicationData) {
 }
 
 export async function getJobApplications(jobId) {
-  return await queryDocuments('applications', 'jobId', '==', jobId)
+  return await queryDocuments('job_applications', 'jobId', '==', jobId)
 }
 
 export async function getUserApplications(userId) {
-  return await queryDocuments('applications', 'userId', '==', userId)
+  return await queryDocuments('job_applications', 'userId', '==', userId)
 }
 
 export async function hasUserApplied(jobId, userId) {
-  const apps = await queryDocuments('applications', 'jobId', '==', jobId)
+  const apps = await queryDocuments('job_applications', 'jobId', '==', jobId)
   return apps.some(a => a.userId === userId)
 }
 
 export async function updateApplicationStatus(applicationId, status) {
-  return await updateDocument('applications', applicationId, { status })
+  return await updateDocument('job_applications', applicationId, { status })
+}
+
+// ===================== Gig Applications =====================
+
+export async function applyToGig(applicationData) {
+  // Prevent duplicate applications
+  const existing = await queryDocuments('gig_applications', 'gigId', '==', applicationData.gigId)
+  const alreadyApplied = existing.find(a => a.userId === applicationData.userId)
+  if (alreadyApplied) {
+    throw new Error('You have already applied to this gig')
+  }
+
+  const appId = await createDocument('gig_applications', {
+    ...applicationData,
+    appliedAt: new Date().toISOString(),
+    status: 'applied',
+  })
+
+  // Notify employer
+  if (applicationData.employerId) {
+    await createNotification(
+      applicationData.employerId,
+      `${applicationData.applicantName || 'Someone'} applied for your gig: ${applicationData.gigTitle || ''}`,
+      'gig'
+    )
+  }
+
+  return appId
+}
+
+export async function hasUserAppliedToGig(gigId, userId) {
+  const apps = await queryDocuments('gig_applications', 'gigId', '==', gigId)
+  return apps.some(a => a.userId === userId)
+}
+
+export async function getGigApplications(gigId) {
+  return await queryDocuments('gig_applications', 'gigId', '==', gigId)
+}
+
+export async function getUserGigApplications(userId) {
+  return await queryDocuments('gig_applications', 'userId', '==', userId)
+}
+
+export async function updateGigApplicationStatus(applicationId, status) {
+  return await updateDocument('gig_applications', applicationId, { status })
 }
 
 // ===================== Reviews =====================

@@ -26,7 +26,9 @@ const JobDetailsPage = lazy(() => import('./pages/jobs/JobDetailsPage'))
 const JobApplicantsPage = lazy(() => import('./pages/jobs/JobApplicantsPage'))
 const GigsPage = lazy(() => import('./pages/gigs/GigsPage'))
 const GigDetailsPage = lazy(() => import('./pages/gigs/GigDetailsPage'))
+const GigApplicantsPage = lazy(() => import('./pages/gigs/GigApplicantsPage'))
 const FindWorkersPage = lazy(() => import('./pages/workers/FindWorkersPage'))
+const WorkerProfilePage = lazy(() => import('./pages/workers/WorkerProfilePage'))
 const AboutPage = lazy(() => import('./pages/about/AboutPage'))
 const ContactPage = lazy(() => import('./pages/contact/ContactPage'))
 const PrivacyPolicyPage = lazy(() => import('./pages/legal/PrivacyPolicyPage'))
@@ -101,6 +103,7 @@ export default function App() {
                   <Route path="/gigs" element={<GigsPage />} />
                   <Route path="/gigs/:id" element={<GigDetailsPage />} />
                   <Route path="/find-workers" element={<FindWorkersPage />} />
+                  <Route path="/workers/:id" element={<WorkerProfilePage />} />
                   <Route path="/about" element={<AboutPage />} />
                   <Route path="/contact" element={<ContactPage />} />
                   <Route path="/privacy" element={<PrivacyPolicyPage />} />
@@ -128,6 +131,7 @@ export default function App() {
                   <Route path="/jobs/create" element={<ProtectedRoute allowedRoles={['employer', 'admin']}><CreateJobPage /></ProtectedRoute>} />
                   <Route path="/jobs/:id/applicants" element={<ProtectedRoute allowedRoles={['employer', 'admin']}><JobApplicantsPage /></ProtectedRoute>} />
                   <Route path="/gigs/create" element={<ProtectedRoute allowedRoles={['employer', 'admin']}><CreateGigPage /></ProtectedRoute>} />
+                  <Route path="/gigs/:id/applicants" element={<ProtectedRoute allowedRoles={['employer', 'admin']}><GigApplicantsPage /></ProtectedRoute>} />
                 </Route>
 
                 {/* Admin */}

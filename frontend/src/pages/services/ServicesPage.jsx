@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useDataCache } from '../../context/DataCacheContext'
 import { SERVICE_CATEGORIES, formatCurrencyINR } from '../../utils/dummyData'
+import useDebounce from '../../hooks/useDebounce'
 import ServiceCard from '../../components/ServiceCard'
 import { CardGridSkeleton } from '../../components/SkeletonLoader'
 import ErrorState from '../../components/ErrorState'
@@ -19,12 +20,13 @@ const SORT_OPTIONS = [
 export default function ServicesPage() {
   const { services, loaded, error, refreshCache } = useDataCache()
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
   const [category, setCategory] = useState('')
   const [sortBy, setSortBy] = useState('relevance')
 
   const filtered = useMemo(() => {
     let result = services.filter(s => {
-      const matchSearch = !search || s.title?.toLowerCase().includes(search.toLowerCase()) || s.description?.toLowerCase().includes(search.toLowerCase())
+      const matchSearch = !debouncedSearch || s.title?.toLowerCase().includes(debouncedSearch.toLowerCase()) || s.description?.toLowerCase().includes(debouncedSearch.toLowerCase())
       const matchCat = !category || s.category?.toLowerCase() === category.toLowerCase()
       return matchSearch && matchCat
     })
@@ -38,7 +40,7 @@ export default function ServicesPage() {
     }
 
     return result
-  }, [services, search, category, sortBy])
+  }, [services, debouncedSearch, category, sortBy])
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -61,7 +63,7 @@ export default function ServicesPage() {
           <select value={category} onChange={e => setCategory(e.target.value)} className="input-field w-auto min-w-[160px]">
             <option value="">All Categories</option>
             {SERVICE_CATEGORIES.map(c => (
-              <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>
+              <option key={c.value} value={c.value}>{c.label}</option>
             ))}
           </select>
           <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="input-field w-auto min-w-[160px]">

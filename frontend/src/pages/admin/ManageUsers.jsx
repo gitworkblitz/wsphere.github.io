@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import api from '../../services/api'
 import { getAllDocuments, updateDocument } from '../../services/firestoreService'
 import { dummyUsers } from '../../utils/dummyData'
+import useDebounce from '../../hooks/useDebounce'
 import { TableSkeleton } from '../../components/SkeletonLoader'
 import ErrorState from '../../components/ErrorState'
 
@@ -12,6 +13,7 @@ export default function ManageUsers() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
 
   const fetchUsers = async () => {
     setLoading(true)
@@ -63,7 +65,7 @@ export default function ManageUsers() {
     }
   }
 
-  const filtered = users.filter(u => !search || u.name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase()))
+  const filtered = users.filter(u => !debouncedSearch || u.name?.toLowerCase().includes(debouncedSearch.toLowerCase()) || u.email?.toLowerCase().includes(debouncedSearch.toLowerCase()))
 
   if (loading) return <div className="p-6"><TableSkeleton rows={6} /></div>
 

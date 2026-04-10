@@ -86,8 +86,12 @@ export default function CreateJobPage() {
               <div className="flex flex-wrap gap-2">{skills.map(s=><span key={s} className="bg-primary-50 text-primary-700 px-3 py-1 rounded-full text-sm flex items-center gap-1">{s}<button type="button" onClick={()=>setSkills(skills.filter(x=>x!==s))} className="text-primary-400 hover:text-primary-700 ml-1">×</button></span>)}</div>
             </div>
             <div className="flex gap-3 pt-2">
-              <button type="button" onClick={()=>navigate(-1)} className="btn-secondary flex-1">Cancel</button>
-              <button type="submit" disabled={loading} className="btn-primary flex-1">{loading?'Posting…':'Post Job'}</button>
+              <button type="button" onClick={() => navigate(-1)} className="btn-secondary flex-1">Cancel</button>
+              <button type="submit" disabled={loading} className="btn-primary flex-1 flex items-center justify-center gap-2">
+                {loading ? (
+                  <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Posting…</>
+                ) : 'Post Job'}
+              </button>
             </div>
           </form>
         </div>

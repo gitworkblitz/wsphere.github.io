@@ -190,10 +190,16 @@ export default function HomePage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-1 mb-3">
-                  {(w.skills || []).slice(0, 2).map(s => (
-                    <span key={s} className="text-[10px] bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 px-2 py-0.5 rounded-full font-medium">{s}</span>
-                  ))}
+                {/* Category & Services */}
+                <div className="mb-3">
+                  <span className="inline-block mb-1.5 text-[10px] font-bold text-primary-700 bg-primary-50 dark:bg-primary-900/40 dark:text-primary-300 px-2 py-0.5 rounded border border-primary-100 dark:border-primary-800">
+                    {w.category || 'Professional'}
+                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {(w.services || w.skills || []).slice(0, 2).map(s => (
+                      <span key={s} className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded font-medium">{s}</span>
+                    ))}
+                  </div>
                 </div>
                 <div className="mb-3">
                   <div className="flex items-center justify-between text-xs mb-1">
@@ -220,7 +226,7 @@ export default function HomePage() {
                 </div>
                 <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-800">
                   <span className="text-sm font-bold text-gray-900 dark:text-white">{formatCurrencyINR(w.hourly_rate || 500)}<span className="text-[10px] text-gray-400 font-normal">/hr</span></span>
-                  <Link to="/find-workers" className="text-xs text-primary-600 hover:text-primary-700 font-semibold">View Profile →</Link>
+                  <Link to={`/workers/${w.id}`} className="text-xs text-primary-600 hover:text-primary-700 font-semibold">View Profile →</Link>
                 </div>
               </motion.div>
             ))}

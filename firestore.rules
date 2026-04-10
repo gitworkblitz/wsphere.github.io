@@ -1,0 +1,161 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------------------------------------------------
+    // Helper Functions
+    // ---------------------------------------------------------
+    
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if the current user is the owner
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Check if user is an admin
+    // Note: Depends on custom claims OR checking the users collection. 
+    // This example uses a lookup to the users collection.
+    // (Be careful with get() as it counts towards billing reads, but standard for role checks)
+    function isAdmin() {
+      // return request.auth.token.admin == true; // Recommended: Custom Claims
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.user_type == 'admin';
+    }
+
+    // ---------------------------------------------------------
+    // Users Collection
+    // ---------------------------------------------------------
+    match /users/{userId} {
+      // Anyone can view a user's public profile (needed for listings)
+      allow read: if true; 
+      
+      // Users can solely update/create their own profile. Admins can update any.
+      allow create, update: if isOwner(userId) || isAdmin();
+      
+      // Usually users shouldn't delete themselves entirely without a cloud function cleanup,
+      // but if allowed, restrict to owner/admin.
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // ---------------------------------------------------------
+    // Services (Offered by Workers)
+    // ---------------------------------------------------------
+    match /services/{serviceId} {
+      // Services are public to view
+      allow read: if true;
+      
+      // Only the worker associated with the service, or an admin, can write
+      allow create: if isAuthenticated() && request.resource.data.worker_id == request.auth.uid;
+      allow update, delete: if isAdmin() || (isAuthenticated() && resource.data.worker_id == request.auth.uid);
+    }
+
+    // ---------------------------------------------------------
+    // Jobs & Gigs (Posted by Employers)
+    // ---------------------------------------------------------
+    match /jobs/{jobId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && request.resource.data.employer_id == request.auth.uid;
+      allow update, delete: if isAdmin() || (isAuthenticated() && resource.data.employer_id == request.auth.uid);
+    }
+
+    match /gigs/{gigId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && (request.resource.data.employer_id == request.auth.uid || request.resource.data.posted_by == request.auth.uid);
+      allow update, delete: if isAdmin() || (isAuthenticated() && (resource.data.employer_id == request.auth.uid || resource.data.posted_by == request.auth.uid || resource.data.freelancer_id == request.auth.uid));
+    }
+
+    // ---------------------------------------------------------
+    // Bookings
+    // ---------------------------------------------------------
+    match /bookings/{bookingId} {
+      // Only the customer who booked, the worker executing, or admin can see it
+      allow read: if isAdmin() 
+                  || (isAuthenticated() && (resource.data.customer_id == request.auth.uid || resource.data.worker_id == request.auth.uid));
+      
+      allow create: if isAuthenticated() && request.resource.data.customer_id == request.auth.uid;
+      
+      // Both parties need to be able to access/update the booking status (e.g. accepted, completed)
+      allow update: if isAdmin() 
+                    || (isAuthenticated() && (resource.data.customer_id == request.auth.uid || resource.data.worker_id == request.auth.uid));
+      
+      allow delete: if isAdmin();
+    }
+
+    // ---------------------------------------------------------
+    // Applications (Jobs and Gigs)
+    // ---------------------------------------------------------
+    match /job_applications/{appId} {
+      // The applicant can view their own, the employer can view it, admins can view
+      allow read: if isAdmin()
+                  || (isAuthenticated() && resource.data.userId == request.auth.uid)
+                  || (isAuthenticated() && resource.data.employerId == request.auth.uid);
+                  
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      
+      // Applicant can withdraw, employer can update status
+      allow update: if isAdmin() 
+                    || (isAuthenticated() && resource.data.userId == request.auth.uid)
+                    || (isAuthenticated() && resource.data.employerId == request.auth.uid);
+      
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+    }
+
+    match /gig_applications/{appId} {
+      allow read: if isAdmin()
+                  || (isAuthenticated() && resource.data.userId == request.auth.uid)
+                  || (isAuthenticated() && resource.data.employerId == request.auth.uid);
+                  
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      
+      allow update: if isAdmin() 
+                    || (isAuthenticated() && resource.data.userId == request.auth.uid)
+                    || (isAuthenticated() && resource.data.employerId == request.auth.uid);
+      
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+    }
+
+    // ---------------------------------------------------------
+    // Reviews
+    // ---------------------------------------------------------
+    match /reviews/{reviewId} {
+      // Reviews are public
+      allow read: if true;
+      // Anyone logged in can create a review (ideally restricted via cloud function to ensure valid bookings)
+      allow create: if isAuthenticated() && request.resource.data.reviewer_id == request.auth.uid;
+      allow update, delete: if isAdmin() || (isAuthenticated() && resource.data.reviewer_id == request.auth.uid);
+    }
+
+    // ---------------------------------------------------------
+    // Notifications & Payments / Invoices 
+    // ---------------------------------------------------------
+    match /notifications/{notifId} {
+      allow read, update, delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || resource.data.user_id == request.auth.uid);
+      allow create: if isAuthenticated(); // One user might trigger a notification for another
+    }
+
+    match /payments/{paymentId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.user_id == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.user_id == request.auth.uid;
+      allow update: if isAdmin(); // Only backend or admin should update payment status to 'paid'
+      allow delete: if false; // Financial records shouldn't be deleted natively
+    }
+
+    match /invoices/{invoiceId} {
+      allow read: if isAdmin() 
+                  || (isAuthenticated() && (resource.data.customer_id == request.auth.uid || resource.data.worker_id == request.auth.uid));
+      allow create, update: if isAuthenticated(); // Frontend logic creates this for now
+      allow delete: if false;
+    }
+    
+    // ---------------------------------------------------------
+    // Fallback: Deny all other access by default
+    // ---------------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

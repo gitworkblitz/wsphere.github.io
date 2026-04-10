@@ -4,6 +4,7 @@ import { MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../../context/AuthContext'
 import { useDataCache } from '../../context/DataCacheContext'
 import GigCard from '../../components/GigCard'
+import useDebounce from '../../hooks/useDebounce'
 import { CardGridSkeleton } from '../../components/SkeletonLoader'
 import ErrorState from '../../components/ErrorState'
 import EmptyState from '../../components/EmptyState'
@@ -32,22 +33,23 @@ const BUDGET_RANGES = [
 ]
 
 export default function GigsPage() {
-  const { user } = useAuth()
+  const { user, userProfile } = useAuth()
   const { gigs, loaded, error, refreshCache } = useDataCache()
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
   const [category, setCategory] = useState('All')
   const [budgetRange, setBudgetRange] = useState(0)
 
   const filtered = useMemo(() => {
     const range = BUDGET_RANGES[budgetRange]
     return gigs.filter(g => {
-      const matchSearch = !search || g.title?.toLowerCase().includes(search.toLowerCase()) || g.description?.toLowerCase().includes(search.toLowerCase())
+      const matchSearch = !debouncedSearch || g.title?.toLowerCase().includes(debouncedSearch.toLowerCase()) || g.description?.toLowerCase().includes(debouncedSearch.toLowerCase())
       const matchCat = category === 'All' || g.category === category
       const budget = Number(g.price || g.budget || 0)
       const matchBudget = budget >= range.min && budget <= range.max
       return matchSearch && matchCat && matchBudget
     })
-  }, [gigs, search, category, budgetRange])
+  }, [gigs, debouncedSearch, category, budgetRange])
 
   const openCount = gigs.filter(g => g.status === 'open').length
 
@@ -64,7 +66,7 @@ export default function GigsPage() {
               <h1 className="text-3xl md:text-4xl font-bold mb-2">Freelance Gig Marketplace</h1>
               <p className="text-white/80 text-lg">Find gigs, earn money, grow your freelance career</p>
             </div>
-            {user && (
+            {user && userProfile?.user_type === 'employer' && (
               <Link to="/gigs/create" className="group bg-white text-violet-700 font-semibold px-6 py-3 rounded-xl hover:bg-violet-50 transition-all shadow-lg flex items-center gap-2 self-start">
                 <PlusIcon className="w-5 h-5" />
                 Post a Gig

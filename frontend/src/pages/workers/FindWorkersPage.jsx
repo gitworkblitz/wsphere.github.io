@@ -21,13 +21,18 @@ export default function FindWorkersPage() {
   const filteredWorkers = useMemo(() => {
     let result = [...workers]
 
-    if (searchTerm || selectedCategory) {
-      const term = (searchTerm || selectedCategory).toLowerCase()
+    if (selectedCategory) {
+      result = result.filter(w => (w.category || '').toLowerCase() === selectedCategory.toLowerCase())
+    }
+
+    if (searchTerm && searchTerm !== selectedCategory) {
+      const term = searchTerm.toLowerCase()
       result = result.filter(w => {
-        const skills = (w.skills || []).map(s => s.toLowerCase())
+        const services = (w.services || []).map(s => s.toLowerCase())
         const name = (w.name || '').toLowerCase()
         const location = (w.location || '').toLowerCase()
-        return skills.some(s => s.includes(term)) || name.includes(term) || location.includes(term)
+        const category = (w.category || '').toLowerCase()
+        return services.some(s => s.includes(term)) || name.includes(term) || location.includes(term) || category.includes(term)
       })
     }
 
@@ -130,11 +135,16 @@ export default function FindWorkersPage() {
                 </div>
               </div>
 
-              {/* Skills */}
-              <div className="flex flex-wrap gap-1.5 mb-4">
-                {(w.skills || []).slice(0, 3).map(s => (
-                  <span key={s} className="text-xs bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 px-2 py-0.5 rounded-full font-medium">{s}</span>
-                ))}
+              {/* Category & Services */}
+              <div className="mb-4">
+                <span className="inline-block mb-2 text-xs font-bold text-primary-700 bg-primary-50 dark:bg-primary-900/40 dark:text-primary-300 px-2.5 py-1 rounded-md border border-primary-100 dark:border-primary-800">
+                  {w.category || 'Professional'}
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {(w.services || w.skills || []).slice(0, 3).map(s => (
+                    <span key={s} className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700 font-medium truncate max-w-[120px]">{s}</span>
+                  ))}
+                </div>
               </div>
 
               {/* Match score bar */}
@@ -174,9 +184,9 @@ export default function FindWorkersPage() {
                   <span className="text-lg font-bold text-gray-900 dark:text-white">{formatCurrencyINR(w.hourly_rate || 500)}</span>
                   <span className="text-xs text-gray-400">/hr</span>
                 </div>
-                <Link to={`/services`}
+                <Link to={`/workers/${w.id}`}
                   className="btn-primary text-xs px-4 py-2">
-                  View Services
+                  View Profile
                 </Link>
               </div>
             </motion.div>

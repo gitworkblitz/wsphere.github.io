@@ -28,6 +28,7 @@ export default function JobApplicantsPage() {
       setJob(jobData)
 
       const apps = await getJobApplications(id)
+      // appliedAt may be stored by new system; createdAt is fallback
       setApplications(apps)
     } catch (err) {
       console.error('Error loading applicants:', err)
