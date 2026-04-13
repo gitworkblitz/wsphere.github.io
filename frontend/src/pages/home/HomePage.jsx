@@ -124,15 +124,18 @@ export default function HomePage() {
             <p className="text-gray-500 dark:text-gray-400">Find the right service for your needs</p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
-            {SERVICE_CATEGORIES.map(({ label, value, icon: Icon }) => (
-              <Link key={label} to={`/find-workers?category=${encodeURIComponent(value)}`}
-                className="flex flex-col items-center gap-2.5 bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 text-center group border border-gray-100 dark:border-gray-800">
-                <div className="w-12 h-12 rounded-xl bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <Icon className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-                </div>
-                <span className="text-xs font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">{label}</span>
-              </Link>
-            ))}
+            {SERVICE_CATEGORIES.map(({ label, value, icon: Icon, color }) => {
+              const c = color || { bg: 'bg-primary-50', icon: 'text-primary-600', glow: 'shadow-primary-200/50', darkBg: 'dark:bg-primary-900/30' }
+              return (
+                <Link key={label} to={`/find-workers?category=${encodeURIComponent(value)}`}
+                  className="flex flex-col items-center gap-2.5 bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm hover:shadow-lg hover:-translate-y-1.5 transition-all duration-300 text-center group border border-gray-100 dark:border-gray-800 cursor-pointer">
+                  <div className={`w-14 h-14 rounded-2xl ${c.bg} ${c.darkBg} flex items-center justify-center group-hover:scale-110 group-hover:${c.glow} transition-all duration-300 group-hover:shadow-lg`}>
+                    <Icon className={`w-7 h-7 ${c.icon} transition-all duration-300 group-hover:scale-110`} />
+                  </div>
+                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">{label}</span>
+                </Link>
+              )
+            })}
           </div>
         </div>
       </section>
