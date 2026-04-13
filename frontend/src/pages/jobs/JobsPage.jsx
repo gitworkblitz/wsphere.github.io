@@ -24,6 +24,11 @@ const CATEGORIES = [
   { label: 'Operations', value: 'Operations' },
   { label: 'Cybersecurity', value: 'Cybersecurity' },
   { label: 'Management', value: 'Management' },
+  { label: 'Education', value: 'Education' },
+  { label: 'Healthcare', value: 'Healthcare' },
+  { label: 'Engineering', value: 'Engineering' },
+  { label: 'Legal', value: 'Legal' },
+  { label: 'Support', value: 'Customer Support' },
 ]
 
 const LOCATIONS = [

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { getUserBookings, queryDocuments } from '../../services/firestoreService'
+import { getUserBookings, getQueryCount } from '../../services/firestoreService'
 import { formatCurrencyINR } from '../../utils/dummyData'
 import { DashboardSkeleton } from '../../components/SkeletonLoader'
 import ErrorState from '../../components/ErrorState'
@@ -19,11 +19,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
-    if (user) loadDashData()
-  }, [user, loadDashData])
-
   const loadDashData = useCallback(async () => {
+    if (!user) return
     setLoading(true)
     setError(null)
     try {
@@ -36,13 +33,14 @@ export default function DashboardPage() {
 
       let serviceCount = 0, jobCount = 0, gigCount = 0, appCount = 0
 
-      // Fetch role-specific stats in parallel
+      // Optimized: use getQueryCount (server-side aggregation = ZERO document reads)
+      // instead of fetching full document arrays just to count .length
       const rolePromises = []
 
       if (isWorker) {
         rolePromises.push(
-          queryDocuments('services', 'worker_id', '==', user.uid)
-            .then(svcs => { serviceCount = svcs.length > 0 ? svcs.length : 100 })
+          getQueryCount('services', 'worker_id', '==', user.uid)
+            .then(count => { serviceCount = count > 0 ? count : 100 })
             .catch(() => { serviceCount = 100 })
         )
       }
@@ -50,14 +48,14 @@ export default function DashboardPage() {
       if (isEmployer) {
         rolePromises.push(
           Promise.all([
-            queryDocuments('jobs', 'employer_id', '==', user.uid),
-            queryDocuments('gigs', 'employer_id', '==', user.uid),
-            queryDocuments('job_applications', 'employerId', '==', user.uid).catch(() => []),
-            queryDocuments('gig_applications', 'employerId', '==', user.uid).catch(() => []),
-          ]).then(([jobsData, gigsData, jobApps, gigApps]) => {
-            jobCount = jobsData.length > 0 ? jobsData.length : 100
-            gigCount = gigsData.length > 0 ? gigsData.length : 100
-            appCount = jobApps.length + gigApps.length
+            getQueryCount('jobs', 'employer_id', '==', user.uid),
+            getQueryCount('gigs', 'employer_id', '==', user.uid),
+            getQueryCount('job_applications', 'employerId', '==', user.uid).catch(() => 0),
+            getQueryCount('gig_applications', 'employerId', '==', user.uid).catch(() => 0),
+          ]).then(([jobC, gigC, jobAppC, gigAppC]) => {
+            jobCount = jobC > 0 ? jobC : 100
+            gigCount = gigC > 0 ? gigC : 100
+            appCount = jobAppC + gigAppC
           }).catch(() => { jobCount = 100; gigCount = 100; })
         )
       }
@@ -81,6 +79,10 @@ export default function DashboardPage() {
       setLoading(false)
     }
   }, [user, isWorker, isEmployer])
+
+  useEffect(() => {
+    if (user) loadDashData()
+  }, [user, loadDashData])
 
   const greeting = () => {
     const hour = new Date().getHours()

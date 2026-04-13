@@ -1,6 +1,6 @@
 import {
   collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
-  query, where, orderBy, limit, serverTimestamp, setDoc, getCountFromServer
+  query, where, orderBy, limit, startAfter, serverTimestamp, setDoc, getCountFromServer
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { createNotification } from './notificationService'
@@ -65,9 +65,11 @@ export async function deleteDocument(collectionName, docId) {
   }
 }
 
-export async function getAllDocuments(collectionName) {
+export async function getAllDocuments(collectionName, maxLimit = 200) {
   try {
-    const snap = await getDocs(collection(db, collectionName))
+    // Safety: always apply a limit to prevent full collection scans
+    const q = query(collection(db, collectionName), limit(maxLimit))
+    const snap = await getDocs(q)
     return snap.docs.map(d => ({ id: d.id, ...d.data() }))
   } catch (err) {
     console.error(`Error getting all ${collectionName}:`, err)
@@ -117,14 +119,55 @@ export async function getCollectionCount(collectionName) {
   }
 }
 
-export async function queryDocuments(collectionName, field, operator, value) {
+export async function queryDocuments(collectionName, field, operator, value, maxLimit = 200) {
   try {
-    const q = query(collection(db, collectionName), where(field, operator, value))
+    const q = query(collection(db, collectionName), where(field, operator, value), limit(maxLimit))
     const snap = await getDocs(q)
     return snap.docs.map(d => ({ id: d.id, ...d.data() }))
   } catch (err) {
     console.error(`Error querying ${collectionName}:`, err)
     return []
+  }
+}
+
+// Optimized: bounded query with limit + orderBy
+export async function queryDocumentsLimited(collectionName, field, operator, value, maxLimit = 20, orderField = 'createdAt', dir = 'desc') {
+  try {
+    const q = query(
+      collection(db, collectionName),
+      where(field, operator, value),
+      orderBy(orderField, dir),
+      limit(maxLimit)
+    )
+    const snap = await getDocs(q)
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+  } catch (err) {
+    // Fallback without orderBy if index missing
+    return queryDocuments(collectionName, field, operator, value, maxLimit)
+  }
+}
+
+// Optimized: count-only query — ZERO document reads
+export async function getQueryCount(collectionName, field, operator, value) {
+  try {
+    const q = query(collection(db, collectionName), where(field, operator, value))
+    const snap = await getCountFromServer(q)
+    return snap.data().count
+  } catch (err) {
+    console.error(`Error counting ${collectionName}:`, err)
+    return 0
+  }
+}
+
+// Optimized: check existence with limit(1) — reads at most 1 document
+export async function documentExists(collectionName, field, operator, value) {
+  try {
+    const q = query(collection(db, collectionName), where(field, operator, value), limit(1))
+    const snap = await getDocs(q)
+    return !snap.empty
+  } catch (err) {
+    console.error(`Error checking existence in ${collectionName}:`, err)
+    return false
   }
 }
 
@@ -268,14 +311,14 @@ export async function applyToJob(applicationData) {
 }
 
 export async function getJobApplications(jobId) {
-  return await queryDocuments('job_applications', 'jobId', '==', jobId)
+  return await queryDocuments('job_applications', 'jobId', '==', jobId, 100)
 }
 
 export async function getUserApplications(userId) {
-  // Try applicantId first, fallback to userId
-  const apps = await queryDocuments('job_applications', 'applicantId', '==', userId)
+  // Try applicantId first, fallback to userId — bounded to 50
+  const apps = await queryDocuments('job_applications', 'applicantId', '==', userId, 50)
   if (apps.length > 0) return apps
-  return await queryDocuments('job_applications', 'userId', '==', userId)
+  return await queryDocuments('job_applications', 'userId', '==', userId, 50)
 }
 
 export async function hasUserApplied(jobId, userId) {
@@ -358,11 +401,11 @@ export async function hasUserAppliedToGig(gigId, userId) {
 }
 
 export async function getGigApplications(gigId) {
-  return await queryDocuments('gig_applications', 'gigId', '==', gigId)
+  return await queryDocuments('gig_applications', 'gigId', '==', gigId, 100)
 }
 
 export async function getUserGigApplications(userId) {
-  return await queryDocuments('gig_applications', 'userId', '==', userId)
+  return await queryDocuments('gig_applications', 'userId', '==', userId, 50)
 }
 
 export async function updateGigApplicationStatus(applicationId, status) {
@@ -372,8 +415,9 @@ export async function updateGigApplicationStatus(applicationId, status) {
 // ===================== Reviews =====================
 
 export async function createReview(reviewData) {
-  const existing = await queryDocuments('reviews', 'booking_id', '==', reviewData.booking_id)
-  if (existing.length > 0) {
+  // Optimized: check existence with limit(1) instead of fetching all reviews
+  const alreadyReviewed = await documentExists('reviews', 'booking_id', '==', reviewData.booking_id)
+  if (alreadyReviewed) {
     throw new Error('You have already reviewed this booking')
   }
   const reviewId = await createDocument('reviews', reviewData)
@@ -524,10 +568,10 @@ export async function updateBookingStatus(bookingId, newStatus) {
   return true
 }
 
-export async function getUserBookings(userId) {
+export async function getUserBookings(userId, maxPerQuery = 50) {
   const [asCustomer, asWorker] = await Promise.all([
-    queryDocuments('bookings', 'customer_id', '==', userId),
-    queryDocuments('bookings', 'worker_id', '==', userId)
+    queryDocuments('bookings', 'customer_id', '==', userId, maxPerQuery),
+    queryDocuments('bookings', 'worker_id', '==', userId, maxPerQuery)
   ])
   const seen = new Set()
   const all = []
@@ -591,7 +635,7 @@ export async function getBookingInvoice(bookingId) {
 }
 
 export async function getUserInvoices(userId) {
-  return await queryDocuments('invoices', 'customer_id', '==', userId)
+  return await queryDocuments('invoices', 'customer_id', '==', userId, 50)
 }
 
 // ===================== Reports =====================
@@ -601,5 +645,5 @@ export async function createReport(reportData) {
 }
 
 export async function getAllReports() {
-  return await getAllDocuments('reports')
+  return await getRecentDocuments('reports', 100)
 }

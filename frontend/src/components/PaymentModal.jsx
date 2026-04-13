@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { formatCurrencyINR } from '../utils/dummyData'
 import {
   CurrencyRupeeIcon, ShieldCheckIcon, XMarkIcon,
@@ -23,13 +23,13 @@ export default function PaymentModal({
   const [cvv, setCvv] = useState('')
   const [cardName, setCardName] = useState('')
 
-  useState(() => {
+  useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape' && !loading) onClose() }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [loading, onClose])
 
-  useState(() => {
+  useEffect(() => {
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = '' }
   }, [])
@@ -56,11 +56,11 @@ export default function PaymentModal({
     return v
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
     if (paymentMethod === 'upi' && !upiId.trim()) return
     if (paymentMethod === 'card' && (!cardNumber || !expiry || !cvv)) return
     onConfirm()
-  }
+  }, [paymentMethod, upiId, cardNumber, expiry, cvv, onConfirm])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

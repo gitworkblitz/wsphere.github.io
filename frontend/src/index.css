@@ -227,3 +227,92 @@
 .status-pulse {
   animation: statusPulse 2s ease-in-out infinite;
 }
+
+/* ============================
+   PERFORMANCE OPTIMIZATIONS
+   ============================ */
+
+/* content-visibility: auto — skip rendering off-screen sections */
+section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 500px;
+}
+
+/* GPU-accelerated card animations */
+.card, .card-hover-lift,
+[class*="hover:-translate-y"],
+[class*="hover:shadow"] {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Fast fade-in for newly loaded cards */
+@keyframes cardFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.card-fade-in {
+  animation: cardFadeIn 0.25s ease-out both;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .skeleton-shimmer::after { animation: none; }
+  .status-pulse { animation: none; }
+}
+
+/* Optimize long lists — prevent layout thrashing */
+.grid {
+  contain: layout style;
+}
+
+/* Faster tooltip/modal backdrop render */
+[class*="backdrop-blur"] {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  will-change: opacity;
+}
+
+/* Smooth image loading placeholder */
+img {
+  content-visibility: auto;
+}
+
+/* Optimize font rendering */
+body {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Instant button feedback — eliminate delay */
+button, a, [role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Slide up animation for filters and modals */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slideUp 0.2s ease-out;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
+}
+

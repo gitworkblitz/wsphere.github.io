@@ -7,12 +7,23 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    // Target modern browsers for smaller output
+    target: 'es2020',
+    // Increase chunk warning threshold (our app intentionally splits)
+    chunkSizeWarningLimit: 600,
+    // Use default esbuild minifier (no extra deps needed)
+    minify: 'esbuild',
     rollupOptions: {
       output: {
         manualChunks: {
+          // Core React — cached aggressively, rarely changes
           vendor: ['react', 'react-dom', 'react-router-dom'],
-          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore'],
-          ui: ['framer-motion', '@headlessui/react', '@heroicons/react'],
+          // Firebase — large, changes only on SDK updates
+          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
+          // UI libraries — animation + headless UI
+          ui: ['framer-motion', '@headlessui/react'],
+          // Icons — large tree, split separately
+          icons: ['@heroicons/react'],
         }
       }
     }
@@ -25,5 +36,9 @@ export default defineConfig({
         changeOrigin: true,
       }
     }
-  }
+  },
+  // Optimize dependency pre-bundling
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', 'firebase/app', 'firebase/auth', 'firebase/firestore'],
+  },
 })

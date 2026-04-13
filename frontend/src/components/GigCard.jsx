@@ -1,52 +1,10 @@
-import React, { useState, useCallback } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import { applyToGig } from '../services/firestoreService'
+import React from 'react'
+import { Link } from 'react-router-dom'
 import { formatCurrencyINR } from '../utils/dummyData'
-import { MapPinIcon, ClockIcon, StarIcon as StarOutline } from '@heroicons/react/24/outline'
-import { CheckCircleIcon, StarIcon as StarSolid, CurrencyRupeeIcon, CalendarIcon } from '@heroicons/react/24/solid'
-import toast from 'react-hot-toast'
+import { ClockIcon } from '@heroicons/react/24/outline'
+import { StarIcon as StarSolid, CurrencyRupeeIcon, CalendarIcon, ArrowRightIcon } from '@heroicons/react/24/solid'
 
 const GigCard = React.memo(function GigCard({ gig }) {
-  const { user, userProfile } = useAuth()
-  const navigate = useNavigate()
-  const [applied, setApplied] = useState(false)
-  const [applying, setApplying] = useState(false)
-
-  const isAssignedToMe = gig.assignedTo === user?.uid
-  const isOpen = gig.status === 'open' || gig.status === 'active'
-
-  const handleApply = useCallback(async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (!user) { navigate('/login'); return }
-    if (applied || applying) return
-
-    setApplying(true)
-    try {
-      await applyToGig({
-        gigId: gig.id,
-        userId: user.uid,
-        userName: userProfile?.name || user.displayName || 'User',
-        applicantName: userProfile?.name || user.displayName || 'User',
-        userEmail: user.email || '',
-        message: '',
-        gigTitle: gig.title || '',
-        employerId: gig.employer_id || gig.posted_by || '',
-      })
-      setApplied(true)
-      toast.success('Proposal Submitted Successfully!')
-    } catch (err) {
-      if (err.message?.includes('already applied')) {
-        setApplied(true)
-        toast.error('You have already applied to this gig')
-      } else {
-        toast.error(err.message || 'Failed to submit proposal')
-      }
-    } finally {
-      setApplying(false)
-    }
-  }, [user, userProfile, gig, applied, applying, navigate])
 
   const postedDaysAgo = () => {
     if (!gig.createdAt) return 'Recently'
@@ -78,7 +36,11 @@ const GigCard = React.memo(function GigCard({ gig }) {
   const isHighBudget = budget >= 15000
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-5 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 flex flex-col group relative overflow-hidden">
+    <Link
+      to={`/gigs/${gig.id}`}
+      id={`gig-card-${gig.id}`}
+      className="block bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-5 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 flex flex-col group relative overflow-hidden"
+    >
       
       {isHighBudget && (
         <div className="absolute top-0 right-0 bg-gradient-to-l from-green-600 to-green-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1">
@@ -99,11 +61,9 @@ const GigCard = React.memo(function GigCard({ gig }) {
         </span>
       </div>
 
-      <Link to={`/gigs/${gig.id}`} className="group-hover:text-primary-600 transition-colors mb-1">
-        <h3 className="font-semibold text-base text-gray-900 dark:text-white group-hover:text-primary-600 line-clamp-2 leading-snug">
-          {gig.title}
-        </h3>
-      </Link>
+      <h3 className="font-semibold text-base text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors line-clamp-2 leading-snug mb-1">
+        {gig.title}
+      </h3>
 
       <div className="text-xs text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-1.5">
         <ClockIcon className="w-3.5 h-3.5" />
@@ -155,39 +115,12 @@ const GigCard = React.memo(function GigCard({ gig }) {
           <span className="text-xs text-gray-400">({clientProjects} projects)</span>
         </div>
 
-        {applied ? (
-          <span className="bg-gray-100 dark:bg-gray-800 text-gray-500 py-2 px-4 rounded-xl font-medium text-sm flex items-center gap-1.5 cursor-not-allowed flex-shrink-0">
-            <CheckCircleIcon className="w-4 h-4 text-green-500" /> Applied
-          </span>
-        ) : isAssignedToMe ? (
-          <span className="bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 py-2 px-4 rounded-xl font-medium text-sm flex items-center gap-1.5 flex-shrink-0">
-            <CheckCircleIcon className="w-4 h-4" /> Active
-          </span>
-        ) : isOpen ? (
-          <button
-            onClick={handleApply}
-            disabled={applying}
-            className="bg-primary-600 text-white text-sm font-semibold px-5 py-2 rounded-xl hover:bg-primary-700 active:scale-95 transition-all disabled:opacity-60 flex items-center justify-center gap-1.5 shadow-sm hover:shadow-md flex-shrink-0"
-          >
-            {applying ? (
-              <>
-                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Submitting…</span>
-              </>
-            ) : (
-              <>
-                <CheckCircleIcon className="w-4 h-4" />
-                <span>Apply</span>
-              </>
-            )}
-          </button>
-        ) : (
-          <Link to={`/gigs/${gig.id}`} className="border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium px-5 py-2 rounded-xl transition-colors flex-shrink-0">
-            View
-          </Link>
-        )}
+        <span className="bg-primary-600 text-white text-sm font-semibold px-4 py-2 rounded-xl group-hover:bg-primary-700 transition-all flex items-center justify-center gap-1.5 shadow-sm group-hover:shadow-md flex-shrink-0">
+          Send Proposal
+          <ArrowRightIcon className="w-3.5 h-3.5" />
+        </span>
       </div>
-    </div>
+    </Link>
   )
 })
 

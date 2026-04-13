@@ -1,51 +1,10 @@
-import React, { useState, useCallback } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import { applyToJob } from '../services/firestoreService'
+import React from 'react'
+import { Link } from 'react-router-dom'
 import { formatSalaryRange } from '../utils/dummyData'
-import { MapPinIcon, ClockIcon, CurrencyRupeeIcon, AcademicCapIcon, BriefcaseIcon, StarIcon } from '@heroicons/react/24/outline'
-import { CheckCircleIcon, StarIcon as StarSolid } from '@heroicons/react/24/solid'
-import toast from 'react-hot-toast'
+import { MapPinIcon, ClockIcon, CurrencyRupeeIcon, AcademicCapIcon, BriefcaseIcon } from '@heroicons/react/24/outline'
+import { StarIcon as StarSolid } from '@heroicons/react/24/solid'
 
 const JobCard = React.memo(function JobCard({ job, featured = false }) {
-  const { user, userProfile } = useAuth()
-  const navigate = useNavigate()
-  const [applied, setApplied] = useState(false)
-  const [applying, setApplying] = useState(false)
-
-  const handleApply = useCallback(async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (!user) { navigate('/login'); return }
-    if (applied || applying) return
-
-    setApplying(true)
-    try {
-      await applyToJob({
-        jobId: job.id,
-        userId: user.uid,
-        userName: userProfile?.name || user.displayName || 'User',
-        applicantName: userProfile?.name || user.displayName || 'User',
-        applicantEmail: user.email || '',
-        userEmail: user.email || '',
-        jobTitle: job.title || '',
-        company: job.company || '',
-        employerId: job.employer_id || job.posted_by || '',
-        location: userProfile?.location || '',
-      })
-      setApplied(true)
-      toast.success('Applied Successfully! Check your applications.')
-    } catch (err) {
-      if (err.message?.includes('already applied')) {
-        setApplied(true)
-        toast.error('You have already applied to this job')
-      } else {
-        toast.error(err.message || 'Failed to apply. Please try again.')
-      }
-    } finally {
-      setApplying(false)
-    }
-  }, [user, userProfile, job, applied, applying, navigate])
 
   const postedDaysAgo = () => {
     if (!job.createdAt) return 'Recently posted'
@@ -84,7 +43,11 @@ const JobCard = React.memo(function JobCard({ job, featured = false }) {
   const badgeClass = typeBadgeColor[job.employment_type] || 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800'
 
   return (
-    <div className={`bg-white dark:bg-gray-900 rounded-xl shadow-card border border-gray-100 dark:border-gray-800 p-5 hover:shadow-card-hover transition-all duration-300 hover:-translate-y-0.5 flex flex-col group relative overflow-hidden ${featured ? 'ring-2 ring-primary-500 ring-opacity-50' : ''}`}>
+    <Link
+      to={`/jobs/${job.id}`}
+      id={`job-card-${job.id}`}
+      className={`block bg-white dark:bg-gray-900 rounded-xl shadow-card border border-gray-100 dark:border-gray-800 p-5 hover:shadow-card-hover transition-all duration-300 hover:-translate-y-0.5 flex flex-col group relative overflow-hidden ${featured ? 'ring-2 ring-primary-500 ring-opacity-50' : ''}`}
+    >
       
       {featured && (
         <div className="absolute top-0 right-0 bg-gradient-to-l from-primary-600 to-primary-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1">
@@ -97,9 +60,9 @@ const JobCard = React.memo(function JobCard({ job, featured = false }) {
           {initials}
         </div>
         <div className="flex-1 min-w-0 pr-16">
-          <Link to={`/jobs/${job.id}`} className="font-semibold text-base text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors line-clamp-1 leading-snug">
+          <span className="font-semibold text-base text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors line-clamp-1 leading-snug">
             {job.title}
-          </Link>
+          </span>
           <p className="text-sm text-primary-600 dark:text-primary-400 font-medium mt-0.5 line-clamp-1">{job.company}</p>
         </div>
         <span className={`text-[10px] font-bold px-2 py-1 rounded-md border uppercase tracking-wide whitespace-nowrap flex-shrink-0 ${badgeClass}`}>
@@ -145,31 +108,14 @@ const JobCard = React.memo(function JobCard({ job, featured = false }) {
           Active
         </span>
 
-        {applied ? (
-          <span className="flex items-center gap-1.5 text-primary-600 dark:text-primary-400 text-sm font-semibold bg-primary-50 dark:bg-primary-900/20 px-4 py-2 rounded-lg">
-            <CheckCircleIcon className="w-4 h-4" /> Applied
-          </span>
-        ) : (
-          <button
-            onClick={handleApply}
-            disabled={applying}
-            className="bg-primary-600 text-white text-sm font-semibold px-5 py-2 rounded-lg hover:bg-primary-700 active:scale-95 transition-all disabled:opacity-60 flex items-center justify-center gap-1.5 min-w-[100px] shadow-sm hover:shadow-md"
-          >
-            {applying ? (
-              <>
-                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Applying…</span>
-              </>
-            ) : (
-              <>
-                <BriefcaseIcon className="w-4 h-4" />
-                <span>Apply Now</span>
-              </>
-            )}
-          </button>
-        )}
+        <span
+          className="bg-primary-600 text-white text-sm font-semibold px-5 py-2 rounded-lg group-hover:bg-primary-700 transition-all flex items-center justify-center gap-1.5 min-w-[120px] shadow-sm group-hover:shadow-md"
+        >
+          <BriefcaseIcon className="w-4 h-4" />
+          <span>View & Apply</span>
+        </span>
       </div>
-    </div>
+    </Link>
   )
 })
 

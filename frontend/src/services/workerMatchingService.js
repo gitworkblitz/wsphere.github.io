@@ -1,16 +1,18 @@
-import { queryDocuments } from './firestoreService'
+import { queryDocuments, checkDoubleBooking } from './firestoreService'
 import { dummyWorkers, calculateWorkerScore } from '../utils/dummyData'
 
 /**
  * Find the best available worker for a service category on a given date/time slot.
  * Uses deterministic scoring — NO AI/ML.
+ * 
+ * Optimized: limits worker fetch to 50, uses compound booking check instead of N+1 queries.
  */
 export async function findBestWorker(category, date, timeSlot) {
   try {
-    // Get all workers matching the category skill
+    // Get workers matching the type — limited to 50
     let workers = []
     try {
-      workers = await queryDocuments('users', 'user_type', '==', 'worker')
+      workers = await queryDocuments('users', 'user_type', '==', 'worker', 50)
     } catch {
       workers = []
     }
@@ -43,15 +45,12 @@ async function scoreAndRank(workers, date, timeSlot) {
   const availableWorkers = workers.filter(w => w.availability !== false)
   const available = []
 
+  // Optimized: use compound query (worker_id + date + time_slot) via checkDoubleBooking
+  // instead of fetching ALL bookings per worker (N+1 problem)
   const workerPromises = availableWorkers.map(async (worker) => {
     let isBooked = false
     try {
-      const bookings = await queryDocuments('bookings', 'worker_id', '==', worker.id)
-      isBooked = bookings.some(
-        b => b.booking_date === date &&
-             b.time_slot === timeSlot &&
-             b.status !== 'cancelled'
-      )
+      isBooked = await checkDoubleBooking(worker.id, date, timeSlot)
     } catch {
       isBooked = false
     }
@@ -79,3 +78,4 @@ export async function autoAssignWorker(category, date, timeSlot) {
   const ranked = await findBestWorker(category, date, timeSlot)
   return ranked.length > 0 ? ranked[0] : null
 }
+

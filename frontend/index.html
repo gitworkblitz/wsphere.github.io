@@ -58,6 +58,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
 
+    <!-- Firebase & API Preconnect — eliminates DNS+TLS latency on first request -->
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossorigin />
+    <link rel="dns-prefetch" href="https://firestore.googleapis.com" />
+    <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com" />
+    <link rel="dns-prefetch" href="https://firebasestorage.googleapis.com" />
+
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
@@ -76,7 +84,17 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Instant loading state before React hydrates -->
+      <div id="initial-loader" style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f9fafb;">
+        <div style="text-align:center;">
+          <div style="width:40px;height:40px;border:3px solid #e5e7eb;border-top-color:#2563eb;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px;"></div>
+          <p style="color:#6b7280;font-family:Inter,system-ui,sans-serif;font-size:14px;font-weight:500;">Loading WorkSphere...</p>
+        </div>
+      </div>
+      <style>#initial-loader{transition:opacity .3s}@keyframes spin{to{transform:rotate(360deg)}}</style>
+      <script>window.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{const l=document.getElementById('initial-loader');if(l){l.style.opacity='0';setTimeout(()=>l.remove(),300)}},100)})</script>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

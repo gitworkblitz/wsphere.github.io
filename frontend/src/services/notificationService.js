@@ -1,6 +1,6 @@
 import {
   collection, doc, getDocs, addDoc, updateDoc,
-  query, where, orderBy, limit, writeBatch
+  query, where, orderBy, limit, writeBatch, getCountFromServer
 } from 'firebase/firestore'
 import { db } from './firebase'
 
@@ -45,7 +45,7 @@ export async function getUserNotifications(userId, maxResults = 20) {
 }
 
 /**
- * Get unread notification count
+ * Get unread notification count — ZERO document reads (server-side aggregation)
  */
 export async function getUnreadCount(userId) {
   try {
@@ -54,8 +54,8 @@ export async function getUnreadCount(userId) {
       where('user_id', '==', userId),
       where('read', '==', false)
     )
-    const snap = await getDocs(q)
-    return snap.size
+    const snap = await getCountFromServer(q)
+    return snap.data().count
   } catch (err) {
     console.error('Failed to count notifications:', err)
     return 0

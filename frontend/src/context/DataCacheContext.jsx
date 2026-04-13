@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { getAllServices, getAllJobs, getAllGigs, queryDocuments } from '../services/firestoreService'
+import { getAllServices, getAllJobs, getAllGigs, queryDocuments, queryDocumentsLimited } from '../services/firestoreService'
 import { dummyServices, dummyJobs, dummyGigs, dummyWorkers } from '../utils/dummyData'
 
 const DataCacheContext = createContext()
@@ -17,12 +17,13 @@ export function DataCacheProvider({ children }) {
   const [error, setError] = useState(null)
   const lastFetch = useRef(0)
   const fetchInProgress = useRef(false)
+  const mountedRef = useRef(true)
 
   const loadAll = useCallback(async (force = false) => {
     // Prevent duplicate parallel fetches
     if (fetchInProgress.current) return
     // Skip if data is fresh and not forced
-    if (!force && loaded && Date.now() - lastFetch.current < CACHE_TTL) return
+    if (!force && Date.now() - lastFetch.current < CACHE_TTL && lastFetch.current > 0) return
 
     fetchInProgress.current = true
     setError(null)
@@ -32,8 +33,10 @@ export function DataCacheProvider({ children }) {
         getAllServices(100).catch(() => []),
         getAllJobs(100).catch(() => []),
         getAllGigs(100).catch(() => []),
-        queryDocuments('users', 'user_type', '==', 'worker').catch(() => []),
+        queryDocumentsLimited('users', 'user_type', '==', 'worker', 50).catch(() => []),
       ])
+
+      if (!mountedRef.current) return
 
       setServices(svcData.length > 0 ? svcData : dummyServices)
       setJobs(jobData.length > 0 ? jobData : dummyJobs)
@@ -42,18 +45,22 @@ export function DataCacheProvider({ children }) {
       lastFetch.current = Date.now()
     } catch (err) {
       console.error('DataCache load error:', err)
+      if (!mountedRef.current) return
       setError('Failed to load data')
-      setServices(dummyServices)
-      setJobs(dummyJobs)
-      setGigs(dummyGigs)
-      setWorkers(dummyWorkers)
+      // Keep dummy data as fallback — already set as initial state
     } finally {
-      setLoaded(true)
-      fetchInProgress.current = false
+      if (mountedRef.current) {
+        setLoaded(true)
+        fetchInProgress.current = false
+      }
     }
-  }, [loaded])
+  }, []) // No deps needed — uses refs for staleness check
 
-  useEffect(() => { loadAll() }, []) // eslint-disable-line
+  useEffect(() => {
+    mountedRef.current = true
+    loadAll()
+    return () => { mountedRef.current = false }
+  }, [loadAll])
 
   // Refresh entire cache
   const refreshCache = useCallback(() => {
@@ -67,22 +74,22 @@ export function DataCacheProvider({ children }) {
       switch (name) {
         case 'services': {
           const data = await getAllServices(100)
-          setServices(data.length > 0 ? data : dummyServices)
+          if (mountedRef.current) setServices(data.length > 0 ? data : dummyServices)
           break
         }
         case 'jobs': {
           const data = await getAllJobs(100)
-          setJobs(data.length > 0 ? data : dummyJobs)
+          if (mountedRef.current) setJobs(data.length > 0 ? data : dummyJobs)
           break
         }
         case 'gigs': {
           const data = await getAllGigs(100)
-          setGigs(data.length > 0 ? data : dummyGigs)
+          if (mountedRef.current) setGigs(data.length > 0 ? data : dummyGigs)
           break
         }
         case 'workers': {
-          const data = await queryDocuments('users', 'user_type', '==', 'worker')
-          setWorkers(data.length > 0 ? data : dummyWorkers)
+          const data = await queryDocumentsLimited('users', 'user_type', '==', 'worker', 50)
+          if (mountedRef.current) setWorkers(data.length > 0 ? data : dummyWorkers)
           break
         }
       }
