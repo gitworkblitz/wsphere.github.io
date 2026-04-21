@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext'
 import {
   Squares2X2Icon, UsersIcon, WrenchScrewdriverIcon, CalendarIcon,
   BriefcaseIcon, StarIcon, DocumentTextIcon, FlagIcon, Cog6ToothIcon,
-  ArrowRightOnRectangleIcon, ChevronLeftIcon, Bars3Icon, XMarkIcon
+  ArrowRightOnRectangleIcon, ChevronLeftIcon, Bars3Icon, XMarkIcon,
+  EnvelopeIcon, ChatBubbleLeftRightIcon
 } from '@heroicons/react/24/outline'
 
 const sidebarLinks = [
@@ -16,6 +17,8 @@ const sidebarLinks = [
   { label: 'Gigs', to: '/admin/gigs', icon: StarIcon },
   { label: 'Reviews', to: '/admin/reviews', icon: DocumentTextIcon },
   { label: 'Reports', to: '/admin/reports', icon: FlagIcon },
+  { label: 'Contact Messages', to: '/admin/contacts', icon: EnvelopeIcon },
+  { label: 'Feedback', to: '/admin/feedback', icon: ChatBubbleLeftRightIcon },
   { label: 'Settings', to: '/admin/settings', icon: Cog6ToothIcon },
 ]
 

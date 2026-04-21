@@ -46,6 +46,7 @@ const MyBookings        = lazy(() => import('./pages/dashboard/MyBookings'))
 const MyServices        = lazy(() => import('./pages/dashboard/MyServices'))
 const MyJobs            = lazy(() => import('./pages/dashboard/MyJobs'))
 const MyGigs            = lazy(() => import('./pages/dashboard/MyGigs'))
+const MyApplications    = lazy(() => import('./pages/dashboard/MyApplications'))
 const ProfilePage       = lazy(() => import('./pages/profile/ProfilePage'))
 const BookingsPage      = lazy(() => import('./pages/bookings/BookingsPage'))
 const BookingDetailPage = lazy(() => import('./pages/bookings/BookingDetailPage'))
@@ -65,6 +66,8 @@ const ManageJobs      = lazy(() => import('./pages/admin/ManageJobs'))
 const ManageGigs      = lazy(() => import('./pages/admin/ManageGigs'))
 const ManageReviews   = lazy(() => import('./pages/admin/ManageReviews'))
 const ManageReports   = lazy(() => import('./pages/admin/ManageReports'))
+const ManageContacts  = lazy(() => import('./pages/admin/ManageContacts'))
+const ManageFeedback  = lazy(() => import('./pages/admin/ManageFeedback'))
 const AdminSettings   = lazy(() => import('./pages/admin/AdminSettings'))
 
 // ─── Misc ────────────────────────────────────────────────────────────────────
@@ -133,6 +136,7 @@ export default function App() {
                   <Route path="/dashboard/services"     element={<ProtectedRoute allowedRoles={['worker', 'admin']}><MyServices /></ProtectedRoute>} />
                   <Route path="/dashboard/jobs"         element={<ProtectedRoute allowedRoles={['employer', 'admin']}><MyJobs /></ProtectedRoute>} />
                   <Route path="/dashboard/gigs"         element={<ProtectedRoute allowedRoles={['employer', 'admin']}><MyGigs /></ProtectedRoute>} />
+                  <Route path="/dashboard/applications" element={<ProtectedRoute><MyApplications /></ProtectedRoute>} />
                   <Route path="/profile"                element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
                   <Route path="/bookings"               element={<ProtectedRoute><BookingsPage /></ProtectedRoute>} />
                   <Route path="/bookings/:id"           element={<ProtectedRoute><BookingDetailPage /></ProtectedRoute>} />
@@ -156,6 +160,8 @@ export default function App() {
                   <Route path="/admin/gigs"          element={<ProtectedRoute adminOnly><ManageGigs /></ProtectedRoute>} />
                   <Route path="/admin/reviews"       element={<ProtectedRoute adminOnly><ManageReviews /></ProtectedRoute>} />
                   <Route path="/admin/reports"       element={<ProtectedRoute adminOnly><ManageReports /></ProtectedRoute>} />
+                  <Route path="/admin/contacts"      element={<ProtectedRoute adminOnly><ManageContacts /></ProtectedRoute>} />
+                  <Route path="/admin/feedback"      element={<ProtectedRoute adminOnly><ManageFeedback /></ProtectedRoute>} />
                   <Route path="/admin/settings"      element={<ProtectedRoute adminOnly><AdminSettings /></ProtectedRoute>} />
                 </Route>
 

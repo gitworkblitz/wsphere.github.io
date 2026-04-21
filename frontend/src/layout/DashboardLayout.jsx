@@ -10,7 +10,7 @@ import {
   User, CreditCard, Menu, X,
   LogOut, ShieldCheck,
   Rocket, Sun, Moon, ChevronDown,
-  Bell, Search
+  Bell, Search, Send
 } from 'lucide-react'
 
 /* ──────────────────────────────────────────────
@@ -40,6 +40,9 @@ const SidebarContent = React.memo(function SidebarContent({ onClose }) {
         { label: 'My Gigs', to: '/dashboard/gigs', icon: Rocket },
       )
     }
+
+    // My Applications — visible to all roles who can apply
+    items.push({ label: 'My Applications', to: '/dashboard/applications', icon: Send })
 
     items.push(
       { label: 'Payments', to: '/payments', icon: CreditCard },

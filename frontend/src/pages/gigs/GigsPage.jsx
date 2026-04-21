@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { MagnifyingGlassIcon, PlusIcon, StarIcon as StarSolid, BriefcaseIcon } from '@heroicons/react/24/solid'
+import { ArrowsUpDownIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../../context/AuthContext'
 import { useDataCache } from '../../context/DataCacheContext'
 import GigCard from '../../components/GigCard'
@@ -8,6 +9,13 @@ import useDebounce from '../../hooks/useDebounce'
 import { CardGridSkeleton } from '../../components/SkeletonLoader'
 import ErrorState from '../../components/ErrorState'
 import EmptyState from '../../components/EmptyState'
+
+const SORT_OPTIONS = [
+  { label: 'Newest First', value: 'newest' },
+  { label: 'Budget: High to Low', value: 'budget_desc' },
+  { label: 'Budget: Low to High', value: 'budget_asc' },
+  { label: 'Deadline: Soonest', value: 'deadline_asc' },
+]
 
 const CATEGORIES = [
   { label: 'All', value: 'All', icon: '🌐' },
@@ -48,6 +56,7 @@ export default function GigsPage() {
   const [category, setCategory] = useState('All')
   const [budgetRange, setBudgetRange] = useState(0)
   const [durationFilter, setDurationFilter] = useState('all')
+  const [sortBy, setSortBy] = useState('newest')
   const [visibleCount, setVisibleCount] = useState(12)
 
   const getDurationDays = (duration) => {
@@ -58,11 +67,12 @@ export default function GigsPage() {
 
   const filtered = useMemo(() => {
     const range = BUDGET_RANGES[budgetRange]
-    return gigs.filter(g => {
+    let result = gigs.filter(g => {
       const matchSearch = !debouncedSearch || 
         g.title?.toLowerCase().includes(debouncedSearch.toLowerCase()) || 
         g.description?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        g.client_details?.name?.toLowerCase().includes(debouncedSearch.toLowerCase())
+        g.client_details?.name?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        (g.skills || []).some(s => s.toLowerCase().includes(debouncedSearch.toLowerCase()))
       const matchCat = category === 'All' || g.category === category
       const budget = Number(g.price || g.budget || 0)
       const matchBudget = budget >= range.min && budget <= range.max
@@ -78,7 +88,26 @@ export default function GigsPage() {
       
       return matchSearch && matchCat && matchBudget && matchDuration
     })
-  }, [gigs, debouncedSearch, category, budgetRange, durationFilter])
+
+    // Sort
+    switch (sortBy) {
+      case 'budget_desc':
+        result.sort((a, b) => (b.budget || b.price || 0) - (a.budget || a.price || 0))
+        break
+      case 'budget_asc':
+        result.sort((a, b) => (a.budget || a.price || 0) - (b.budget || b.price || 0))
+        break
+      case 'deadline_asc':
+        result.sort((a, b) => getDurationDays(a.duration) - getDurationDays(b.duration))
+        break
+      case 'newest':
+      default:
+        result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+        break
+    }
+
+    return result
+  }, [gigs, debouncedSearch, category, budgetRange, durationFilter, sortBy])
 
   const openCount = gigs.filter(g => g.status === 'open').length
   const avgBudget = gigs.length > 0 
@@ -145,6 +174,9 @@ export default function GigsPage() {
             >
               {DURATION_FILTERS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
             </select>
+            <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="input-field w-auto min-w-[170px]">
+              {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
           </div>
         </div>
 
@@ -164,13 +196,13 @@ export default function GigsPage() {
           ))}
         </div>
 
-        <div className="flex items-center justify-between mb-5">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {filtered.length} gig{filtered.length !== 1 ? 's' : ''} found
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+            <span className="text-gray-900 dark:text-white font-bold">{filtered.length}</span> gig{filtered.length !== 1 ? 's' : ''} found
           </p>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <span className="w-2 h-2 bg-green-400 rounded-full" />
-            <span>Real-time listings</span>
+          <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
+            <ArrowsUpDownIcon className="w-3.5 h-3.5" />
+            {SORT_OPTIONS.find(o => o.value === sortBy)?.label}
           </div>
         </div>
 

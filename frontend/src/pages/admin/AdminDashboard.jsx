@@ -365,6 +365,8 @@ export default function AdminDashboard() {
               { label: 'Manage Services', desc: 'Review and moderate listings', to: '/admin/services', icon: WrenchScrewdriverIcon, gradient: 'from-green-500 to-green-600', bg: 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' },
               { label: 'Manage Bookings', desc: 'Track all platform bookings', to: '/admin/bookings', icon: CalendarIcon, gradient: 'from-purple-500 to-purple-600', bg: 'border-purple-200 bg-purple-50 dark:border-purple-800 dark:bg-purple-900/20' },
               { label: 'Manage Reviews', desc: 'Moderate user reviews', to: '/admin/reviews', icon: StarIcon, gradient: 'from-orange-500 to-orange-600', bg: 'border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20' },
+              { label: 'Contact Messages', desc: 'View and respond to inquiries', to: '/admin/contacts', icon: DocumentTextIcon, gradient: 'from-cyan-500 to-cyan-600', bg: 'border-cyan-200 bg-cyan-50 dark:border-cyan-800 dark:bg-cyan-900/20' },
+              { label: 'User Feedback', desc: 'Track ratings and feedback', to: '/admin/feedback', icon: CheckBadgeIcon, gradient: 'from-pink-500 to-rose-600', bg: 'border-pink-200 bg-pink-50 dark:border-pink-800 dark:bg-pink-900/20' },
             ].map(({ label, desc, to, icon: ItemIcon, gradient, bg }) => (
               <Link key={to} to={to} className={`quick-action p-4 rounded-xl border-2 ${bg} group flex items-start gap-3`}>
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center bg-gradient-to-br ${gradient} shadow-sm flex-shrink-0`}>

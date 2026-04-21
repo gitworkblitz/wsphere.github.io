@@ -1,18 +1,21 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { useDataCache } from '../../context/DataCacheContext'
 import { getJobById, applyToJob, hasUserApplied } from '../../services/firestoreService'
 import { storage } from '../../services/firebase'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { dummyJobs, formatSalaryRange } from '../../utils/dummyData'
-import { MapPinIcon, CalendarIcon, BriefcaseIcon, CurrencyRupeeIcon, AcademicCapIcon, BuildingOfficeIcon, UserIcon, ArrowLeftIcon, ClockIcon, PaperClipIcon } from '@heroicons/react/24/outline'
+import { MapPinIcon, CalendarIcon, BriefcaseIcon, CurrencyRupeeIcon, AcademicCapIcon, BuildingOfficeIcon, UserIcon, ArrowLeftIcon, ClockIcon, PaperClipIcon, SparklesIcon } from '@heroicons/react/24/outline'
 import { CheckCircleIcon } from '@heroicons/react/24/solid'
 import toast from 'react-hot-toast'
 import { DetailSkeleton } from '../../components/SkeletonLoader'
+import JobCard from '../../components/JobCard'
 
 export default function JobDetailsPage() {
   const { id } = useParams()
   const { user, userProfile } = useAuth()
+  const { jobs: allJobs } = useDataCache()
   const navigate = useNavigate()
   const [job, setJob] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -455,7 +458,52 @@ export default function JobDetailsPage() {
             </div>
           </div>
         )}
+
+        {/* Similar Jobs Section */}
+        <SimilarJobs currentJob={job} allJobs={allJobs} />
       </div>
     </div>
   )
 }
+
+// ===== Similar Jobs Component =====
+const SimilarJobs = React.memo(function SimilarJobs({ currentJob, allJobs }) {
+  const similarJobs = useMemo(() => {
+    if (!currentJob || !allJobs?.length) return []
+    const currentSkills = new Set((currentJob.skills_required || []).map(s => s.toLowerCase()))
+
+    return allJobs
+      .filter(j => j.id !== currentJob.id)
+      .map(j => {
+        let score = 0
+        // Same category = +3
+        if (j.category === currentJob.category) score += 3
+        // Same location = +1
+        if (j.location === currentJob.location) score += 1
+        // Same type = +1
+        if (j.employment_type === currentJob.employment_type) score += 1
+        // Overlapping skills = +1 each
+        ;(j.skills_required || []).forEach(s => {
+          if (currentSkills.has(s.toLowerCase())) score += 1
+        })
+        return { ...j, _score: score }
+      })
+      .filter(j => j._score >= 2)
+      .sort((a, b) => b._score - a._score)
+      .slice(0, 6)
+  }, [currentJob, allJobs])
+
+  if (similarJobs.length === 0) return null
+
+  return (
+    <div className="mt-10">
+      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
+        <SparklesIcon className="w-5 h-5 text-primary-500" />
+        Similar Jobs You May Like
+      </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        {similarJobs.map(j => <JobCard key={j.id} job={j} compact />)}
+      </div>
+    </div>
+  )
+})

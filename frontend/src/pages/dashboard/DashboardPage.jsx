@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuth } from '../../context/AuthContext'
+import { useDataCache } from '../../context/DataCacheContext'
 import { getUserBookings, getQueryCount, queryDocumentsLimited } from '../../services/firestoreService'
 import { formatCurrencyINR } from '../../utils/dummyData'
 import { DashboardSkeleton } from '../../components/SkeletonLoader'
@@ -13,7 +14,7 @@ import {
   TrendingUp as ArrowTrendingUpIcon, Eye as EyeIcon, Rocket as RocketLaunchIcon,
   BarChart as ChartBarIcon, ArrowRight as ArrowRightIcon, Sparkles as SparklesIcon,
   BadgeCheck as CheckBadgeIcon, MessageCircle, Search, Zap, Receipt,
-  CreditCard, ShoppingBag, History, AlertCircle
+  CreditCard, ShoppingBag, History, AlertCircle, Send, MapPin, IndianRupee
 } from 'lucide-react'
 
 /* ──────────────────────────────────────────────
@@ -147,6 +148,7 @@ const BookingRow = React.memo(function BookingRow({ booking, getStatusConfig }) 
    ────────────────────────────────────────────── */
 export default function DashboardPage() {
   const { user, userProfile, isAdmin, isWorker, isEmployer, isCustomer } = useAuth()
+  const { services: cachedServices, jobs: cachedJobs, gigs: cachedGigs } = useDataCache()
   const [stats, setStats] = useState({
     bookings: 0, services: 0, jobs: 0, gigs: 0,
     revenue: 0, pending: 0, completed: 0, applications: 0,
@@ -337,6 +339,7 @@ export default function DashboardPage() {
     }
     actions.push(
       { label: 'My Bookings', icon: CalendarIcon, to: '/dashboard/bookings', color: 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' },
+      { label: 'My Applications', icon: Send, to: '/dashboard/applications', color: 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/30' },
       { label: 'Payments', icon: CurrencyRupeeIcon, to: '/payments', color: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/30' },
       { label: 'Invoices', icon: DocumentTextIcon, to: '/invoices', color: 'bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900/30' },
     )
@@ -594,6 +597,68 @@ export default function DashboardPage() {
             <QuickActionButton key={i} action={action} />
           ))}
         </motion.div>
+      </motion.div>
+
+      {/* Recommendations */}
+      <motion.div
+        variants={sectionVariants}
+        className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 mb-8"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <SparklesIcon className="w-5 h-5 text-amber-500" />
+            Recommended For You
+          </h2>
+          <Link to={isCustomer ? '/services' : '/jobs'} className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center gap-1 group">
+            View all <ArrowRightIcon className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {(isCustomer || (!isWorker && !isEmployer)) && cachedServices.slice(0, 3).map((svc) => (
+            <motion.div key={svc.id} variants={itemVariants} whileHover={{ y: -2 }}>
+              <Link to={`/services/${svc.id}`} className="block bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group border border-transparent hover:border-primary-200 dark:hover:border-primary-800">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-violet-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <WrenchScrewdriverIcon className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate group-hover:text-primary-600 transition-colors">{svc.title}</p>
+                    <p className="text-xs text-gray-400 truncate">{svc.category}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  <div className="flex items-center gap-2 text-xs text-gray-400">
+                    <span className="flex items-center gap-1"><Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />{svc.rating || '4.5'}</span>
+                    <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{(svc.location || 'Delhi').split(',')[0]}</span>
+                  </div>
+                  <span className="text-sm font-bold text-primary-600 dark:text-primary-400">{formatCurrencyINR(svc.price || 0)}</span>
+                </div>
+              </Link>
+            </motion.div>
+          ))}
+          {(isWorker || isEmployer) && cachedJobs.slice(0, 3).map((job) => (
+            <motion.div key={job.id} variants={itemVariants} whileHover={{ y: -2 }}>
+              <Link to={`/jobs/${job.id}`} className="block bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all group border border-transparent hover:border-purple-200 dark:hover:border-purple-800">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <BriefcaseIcon className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate group-hover:text-purple-600 transition-colors">{job.title}</p>
+                    <p className="text-xs text-gray-400 truncate">{job.company || 'Company'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  <div className="flex items-center gap-2 text-xs text-gray-400">
+                    <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{(job.location || 'Remote').split(',')[0]}</span>
+                    <span className="capitalize bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded-full text-[10px] font-medium">{(job.employment_type || 'full_time').replace('_', ' ')}</span>
+                  </div>
+                  {job.salary_min && <span className="text-sm font-bold text-purple-600 dark:text-purple-400">₹{(job.salary_min/100000).toFixed(0)}L+</span>}
+                </div>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
       </motion.div>
 
       {/* Recent Bookings */}
